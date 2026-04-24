@@ -4,15 +4,16 @@ import { useEffect, useMemo, useState } from "react"
 import DeckGL from "@deck.gl/react"
 import { GeoJsonLayer, ScatterplotLayer } from "@deck.gl/layers"
 import { Map } from "react-map-gl/maplibre"
-import { AlertTriangle, Clock, Gauge } from "lucide-react"
+import { AlertTriangle, Gauge } from "lucide-react"
 
 import { LayerToggles, type MapLayerKey } from "@/components/map/LayerToggles"
-import { sampleSegments, sampleTanks } from "@/components/map/sampleData"
 import { DataBadge } from "@/components/ui/DataBadge"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { getSegments, getTanks } from "@/lib/api"
 import { phiColor, phiLabel } from "@/lib/phi"
 import type { SegmentFeature, SegmentFeatureCollection, TankFeature } from "@/types/domain"
+
+const EMPTY_FC: SegmentFeatureCollection = { type: "FeatureCollection", features: [] }
 
 const initialViewState = {
   longitude: 13.48,
@@ -35,8 +36,8 @@ const defaultLayers: Record<MapLayerKey, boolean> = {
 }
 
 export function DeckMap() {
-  const [segments, setSegments] = useState<SegmentFeatureCollection>(sampleSegments)
-  const [tanks, setTanks] = useState<TankFeature[]>(sampleTanks)
+  const [segments, setSegments] = useState<SegmentFeatureCollection>(EMPTY_FC)
+  const [tanks, setTanks] = useState<TankFeature[]>([])
   const [selected, setSelected] = useState<SegmentFeature | TankFeature | null>(null)
   const [backendState, setBackendState] = useState<"loading" | "live" | "warning">("loading")
   const [enabled, setEnabled] = useState<Record<MapLayerKey, boolean>>(defaultLayers)
@@ -53,13 +54,9 @@ export function DeckMap() {
       })
       .catch((error) => {
         console.warn(error)
-        if (!cancelled) {
-          setBackendState("warning")
-        }
+        if (!cancelled) setBackendState("warning")
       })
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [])
 
   const layers = useMemo(() => {
@@ -130,12 +127,14 @@ export function DeckMap() {
               Selected asset
             </div>
             <h2 className="mt-1 font-[var(--font-unbounded)] text-lg tracking-normal">
-              {selectedSegment ? `Segment ${selectedSegment.properties.id}` : selectedTank?.properties.name ?? "None"}
+              {selectedSegment
+                ? `Segment ${selectedSegment.properties.id}`
+                : selectedTank?.properties.name ?? "Click a feature"}
             </h2>
           </div>
           <DataBadge
-            label="API"
-            value={backendState === "live" ? "live" : backendState === "loading" ? "loading" : "warning"}
+            label={backendState === "live" ? `${segments.features.length}seg` : "API"}
+            value={backendState === "live" ? `${tanks.length}tank` : backendState}
             tone={backendState === "warning" ? "yellow" : "cyan"}
           />
         </div>
@@ -164,6 +163,12 @@ export function DeckMap() {
                 </div>
               ))}
             </div>
+            <a
+              href={`/app/segment/${selectedSegment.properties.id}`}
+              className="mt-1 block rounded border border-[var(--glass-stroke)] py-1.5 text-center text-xs text-[var(--acea-cyan)] hover:border-[var(--acea-cyan)]"
+            >
+              Open detail →
+            </a>
           </div>
         ) : selectedTank ? (
           <div className="mt-4 grid gap-3 text-sm text-[var(--text-md)]">
@@ -175,20 +180,29 @@ export function DeckMap() {
               <span>Severity</span>
               <span>{selectedTank.properties.severity}</span>
             </div>
+            {selectedTank.properties.capacity_m3 != null && (
+              <div className="flex justify-between border-b border-white/10 pb-2">
+                <span>Capacity</span>
+                <span>{selectedTank.properties.capacity_m3?.toLocaleString()} m³</span>
+              </div>
+            )}
+            <a
+              href={`/app/tank/${selectedTank.properties.id}`}
+              className="mt-1 block rounded border border-[var(--glass-stroke)] py-1.5 text-center text-xs text-[var(--acea-cyan)] hover:border-[var(--acea-cyan)]"
+            >
+              Open detail →
+            </a>
           </div>
+        ) : backendState === "loading" ? (
+          <div className="mt-4 text-xs text-[var(--text-lo)]">Loading network data…</div>
         ) : null}
 
-        {backendState === "warning" ? (
+        {backendState === "warning" && (
           <div className="mt-4 flex gap-2 rounded-md border border-[rgba(251,191,36,0.28)] bg-[rgba(251,191,36,0.08)] p-3 text-xs text-[var(--phi-yellow)]">
             <AlertTriangle className="h-4 w-4 shrink-0" />
-            HF `/api/segments` is not available yet. The map is showing demo-safe sample features until backend Step 7 lands.
+            Backend unreachable — check HF Space status.
           </div>
-        ) : null}
-      </GlassCard>
-
-      <GlassCard className="absolute bottom-4 right-4 flex items-center gap-3 px-3 py-2 text-xs text-[var(--text-md)]">
-        <Clock className="h-4 w-4 text-[var(--acea-teal)]" />
-        EPANET sim status · awaiting backend loop
+        )}
       </GlassCard>
     </div>
   )

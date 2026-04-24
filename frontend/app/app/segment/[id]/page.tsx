@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
-import { ArrowLeft, BarChart3, Gauge, Info, Network, Thermometer, TreePine, Waves } from "lucide-react"
+import { ArrowLeft, Gauge, Info, Network, Thermometer, TreePine, Waves } from "lucide-react"
 
 import { GlassCard } from "@/components/ui/GlassCard"
 import { API_BASE } from "@/lib/api"
@@ -200,16 +200,6 @@ export default function SegmentDetailPage() {
           </div>
         </GlassCard>
       </div>
-
-      <GlassCard className="p-4">
-        <h2 className="mb-3 flex items-center gap-2 font-[var(--font-unbounded)] text-sm">
-          <BarChart3 className="h-4 w-4 text-[var(--acea-cyan)]" />
-          PHI History ({data.history_summary.window})
-        </h2>
-        <div className="flex h-32 items-center justify-center border border-dashed border-[var(--glass-stroke)] text-sm text-[var(--text-lo)]">
-          Time-series chart placeholder ({data.history_summary.points} data points)
-        </div>
-      </GlassCard>
 
       <ExplainStream
         entityType="segment"
