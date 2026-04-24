@@ -108,8 +108,8 @@ export function ControlRecCard({ recommendations, onUpdate }: ControlRecCardProp
           </div>
 
           <div className="mb-3 font-[var(--font-jetbrains)] text-sm text-[var(--text-md)]">
+            <span className="text-[var(--text-lo)]">Suggested → </span>
             <span className="text-[var(--acea-cyan)]">{rec.suggested_value}</span>
-            <span className="text-[var(--text-lo)]"> (current: infer) </span>
           </div>
 
           <div className="mb-3 text-sm text-[var(--text-md)]">{rec.reason}</div>

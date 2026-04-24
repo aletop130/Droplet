@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils"
 const navItems = [
   { href: "/app", label: "Mission Control", icon: Gauge },
   { href: "/app/map", label: "Map", icon: Map },
-  { href: "/app/segment/1482", label: "Segment", icon: Activity },
+  { href: "/app/segment/1", label: "Segment", icon: Activity },
   { href: "/app/tank", label: "Tanks", icon: Database },
   { href: "/app/dma/1", label: "DMA", icon: Workflow },
   { href: "/app/incidents", label: "Incidents", icon: AlertTriangle },
