@@ -34,5 +34,13 @@ export type TankFeature = {
     name: string
     headroom_pct: number
     severity: 0 | 1 | 2 | 3
+    capacity_m3?: number
+    dma_id?: number | null
+    data_source?: string
   }
+}
+
+export type TankFeatureCollection = {
+  type: "FeatureCollection"
+  features: TankFeature[]
 }

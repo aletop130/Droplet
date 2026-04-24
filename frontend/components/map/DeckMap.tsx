@@ -10,7 +10,7 @@ import { LayerToggles, type MapLayerKey } from "@/components/map/LayerToggles"
 import { sampleSegments, sampleTanks } from "@/components/map/sampleData"
 import { DataBadge } from "@/components/ui/DataBadge"
 import { GlassCard } from "@/components/ui/GlassCard"
-import { getSegments } from "@/lib/api"
+import { getSegments, getTanks } from "@/lib/api"
 import { phiColor, phiLabel } from "@/lib/phi"
 import type { SegmentFeature, SegmentFeatureCollection, TankFeature } from "@/types/domain"
 
@@ -36,16 +36,18 @@ const defaultLayers: Record<MapLayerKey, boolean> = {
 
 export function DeckMap() {
   const [segments, setSegments] = useState<SegmentFeatureCollection>(sampleSegments)
-  const [selected, setSelected] = useState<SegmentFeature | TankFeature | null>(sampleSegments.features[0])
+  const [tanks, setTanks] = useState<TankFeature[]>(sampleTanks)
+  const [selected, setSelected] = useState<SegmentFeature | TankFeature | null>(null)
   const [backendState, setBackendState] = useState<"loading" | "live" | "warning">("loading")
   const [enabled, setEnabled] = useState<Record<MapLayerKey, boolean>>(defaultLayers)
 
   useEffect(() => {
     let cancelled = false
-    getSegments(1)
-      .then((geojson) => {
+    Promise.all([getSegments(), getTanks()])
+      .then(([segGeojson, tankGeojson]) => {
         if (!cancelled) {
-          setSegments(geojson)
+          if (segGeojson.features.length > 0) setSegments(segGeojson)
+          if (tankGeojson.features.length > 0) setTanks(tankGeojson.features)
           setBackendState("live")
         }
       })
@@ -81,7 +83,7 @@ export function DeckMap() {
       built.push(
         new ScatterplotLayer<TankFeature>({
           id: "tank-markers",
-          data: sampleTanks,
+          data: tanks,
           pickable: true,
           radiusUnits: "pixels",
           getPosition: (feature) => feature.geometry.coordinates,
@@ -99,7 +101,7 @@ export function DeckMap() {
       )
     }
     return built
-  }, [enabled, segments])
+  }, [enabled, segments, tanks])
 
   const selectedSegment = selected && "material" in selected.properties ? (selected as SegmentFeature) : null
   const selectedTank = selected && "headroom_pct" in selected.properties ? (selected as TankFeature) : null

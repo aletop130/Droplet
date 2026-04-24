@@ -20,7 +20,7 @@ const navItems = [
   { href: "/app", label: "Mission Control", icon: Gauge },
   { href: "/app/map", label: "Map", icon: Map },
   { href: "/app/segment/1482", label: "Segment", icon: Activity },
-  { href: "/app/tank/3", label: "Tank", icon: Database },
+  { href: "/app/tank", label: "Tanks", icon: Database },
   { href: "/app/dma/1", label: "DMA", icon: Workflow },
   { href: "/app/incidents", label: "Incidents", icon: AlertTriangle },
   { href: "/app/source", label: "Source", icon: Waves },
