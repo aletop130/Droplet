@@ -1,0 +1,23 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "compaction": {
+    "auto": true,
+    "prune": true,
+    "reserved": 40000
+  },
+  "provider": {
+    "regolo-ai": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "regolo.ai",
+      "options": {
+        "baseURL": "https://api.regolo.ai",
+        "apiKey": "sk-NklmaM1W15f-FWYh8Li-mA"
+      },
+      "models": {
+        "qwen3.6-27b": {
+          "name": "qwen3.6-27b"
+        }
+      }
+    }
+  }
+}

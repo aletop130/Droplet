@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+:root {
+  --bg-0: #050B14;
+  --bg-1: #0A1628;
+  --bg-2: #0F1E35;
+  --bg-3: #14294A;
+  --glass-stroke: rgba(180, 220, 255, 0.12);
+  --glass-fill: rgba(10, 22, 40, 0.55);
+  --glass-highlight: rgba(120, 200, 255, 0.08);
+  --blur-glass: 20px;
+  --acea-deep: #003A7D;
+  --acea-blue: #0A5CA8;
+  --acea-cyan: #22CFFF;
+  --acea-teal: #2DD4BF;
+  --acea-ice: #BAE6FD;
+  --phi-green: #10B981;
+  --phi-yellow: #FBBF24;
+  --phi-orange: #FB923C;
+  --phi-red: #F43F5E;
+  --signal-subs: #A855F7;
+  --signal-ndvi: #10B981;
+  --signal-therm: #F97316;
+  --signal-hydr: #22CFFF;
+  --signal-tank: #2DD4BF;
+  --text-hi: #E2F0FF;
+  --text-md: #94A6BF;
+  --text-lo: #5A6B85;
+  --gradient-liquid: radial-gradient(
+    ellipse at 30% 20%,
+    rgba(34, 207, 255, 0.18) 0%,
+    rgba(10, 92, 168, 0.08) 35%,
+    rgba(5, 11, 20, 0) 70%
+  );
+  --stroke-gradient: linear-gradient(
+    135deg,
+    rgba(34, 207, 255, 0.6),
+    rgba(10, 92, 168, 0.2),
+    rgba(45, 212, 191, 0.4)
+  );
+}
+
+@theme inline {
+  --color-background: var(--bg-0);
+  --color-foreground: var(--text-hi);
+  --color-card: var(--bg-1);
+  --color-card-foreground: var(--text-hi);
+  --color-popover: var(--bg-3);
+  --color-popover-foreground: var(--text-hi);
+  --color-primary: var(--acea-cyan);
+  --color-primary-foreground: var(--bg-0);
+  --color-secondary: var(--bg-2);
+  --color-secondary-foreground: var(--text-hi);
+  --color-muted: rgba(148, 166, 191, 0.12);
+  --color-muted-foreground: var(--text-md);
+  --color-accent: var(--acea-teal);
+  --color-accent-foreground: var(--bg-0);
+  --color-destructive: var(--phi-red);
+  --color-border: var(--glass-stroke);
+  --color-input: rgba(180, 220, 255, 0.14);
+  --color-ring: var(--acea-cyan);
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Unbounded", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --radius: 0.5rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: var(--bg-0);
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background:
+    var(--gradient-liquid),
+    linear-gradient(180deg, #050B14 0%, #07101D 46%, #050B14 100%);
+  color: var(--text-hi);
+  font-family: var(--font-inter), "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+.glass-panel {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015)),
+    var(--glass-fill);
+  border: 1px solid var(--glass-stroke);
+  backdrop-filter: blur(var(--blur-glass));
+  box-shadow: 0 24px 90px rgba(0, 0, 0, 0.32);
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  35% {
+    transform: translateX(-8px);
+  }
+  70% {
+    transform: translateX(8px);
+  }
+}
