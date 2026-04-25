@@ -1,267 +1,158 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Link from "next/link"
 import { useParams } from "next/navigation"
-import { ArrowLeft, BarChart3, Droplets, Gauge, Info, Network, TrendingDown, TrendingUp } from "lucide-react"
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis
+} from "recharts"
 
-import { GlassCard } from "@/components/ui/GlassCard"
-import { API_BASE } from "@/lib/api"
+import { ControlRecCard } from "@/components/control/ControlRecCard"
 import { ExplainStream } from "@/components/explain/ExplainStream"
-
-type TankDetail = {
-  tank: {
-    type: "Feature"
-    geometry: { type: "Point"; coordinates: [number, number] }
-    properties: {
-      id: number
-      name: string
-      headroom_pct: number
-      severity: 0 | 1 | 2 | 3
-    }
-  }
-  balance: {
-    inflow_m3h: number
-    outflow_m3h: number
-    net_balance_m3h: number
-    fill_rate_pcth: number
-  }
-  kpi: {
-    turnover_h: number
-    residence_time_h: number
-    z_score: number
-    days_to_empty: number | null
-    days_to_full: number | null
-  }
-  anomalies: Array<{ detector: string; severity: number }>
-  related_segments: number[]
-}
-
-function GaugeCard({
-  label,
-  value,
-  maxValue,
-  color
-}: {
-  label: string
-  value: number
-  maxValue?: number
-  color: string
-}) {
-  const max = maxValue ?? 100
-  const pct = Math.min((value / max) * 100, 100)
-
-  return (
-    <div className="rounded-lg border border-[var(--glass-stroke)] p-3">
-      <div className="mb-2 flex items-center justify-between">
-        <span className="text-xs text-[var(--text-lo)]">{label}</span>
-        <span className="font-[var(--font-jetbrains)] text-sm" style={{ color }}>
-          {typeof value === "number" ? value.toFixed(1) : value}
-        </span>
-      </div>
-      <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--bg-2)]">
-        <div
-          className="h-full transition-all duration-500"
-          style={{ width: `${pct}%`, backgroundColor: color }}
-        />
-      </div>
-    </div>
-  )
-}
-
-function SeverityPill({ severity }: { severity: 0 | 1 | 2 | 3 }) {
-  const colors = ["var(--phi-green)", "var(--phi-yellow)", "var(--phi-orange)", "var(--phi-red)"]
-  const labels = ["Normal", "Warning", "Critical", "Critical"]
-  const color = colors[severity] ?? "var(--text-lo)"
-  const label = labels[severity] ?? "Unknown"
-
-  return (
-    <span
-      className="rounded px-2 py-1 font-[var(--font-unbounded)] text-xs uppercase"
-      style={{ backgroundColor: `${color}20`, color }}
-    >
-      {label}
-    </span>
-  )
-}
+import { DataBadge } from "@/components/ui/DataBadge"
+import { Gauge } from "@/components/ui/Gauge"
+import { GlassCard } from "@/components/ui/GlassCard"
+import { getControlRecs, getTank } from "@/lib/api"
+import { useSelectionStore } from "@/store/selectionStore"
+import type { ControlRecommendation, TankDetail } from "@/types/domain"
 
 export default function TankDetailPage() {
-  const params = useParams()
-  const tankId = Number(params.id)
-  const [data, setData] = useState<TankDetail | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [explainOpen, setExplainOpen] = useState(false)
+  const params = useParams<{ id: string }>()
+  const id = Number(params.id)
+  const [detail, setDetail] = useState<TankDetail | null>(null)
+  const [recs, setRecs] = useState<ControlRecommendation[]>([])
+  const [openExplain, setOpenExplain] = useState(false)
+  const setActiveTank = useSelectionStore((state) => state.setActiveTank)
 
   useEffect(() => {
-    if (!tankId) return
-    setLoading(true)
-    fetch(`${API_BASE}/api/tanks/${tankId}`, {
-      headers: { Accept: "application/json" },
-      cache: "no-store"
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error(`Tank ${tankId} not found`)
-        return res.json()
-      })
-      .then(setData)
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false))
-  }, [tankId])
+    if (!Number.isFinite(id)) return
+    setActiveTank(id)
+    getTank(id).then(setDetail)
+    getControlRecs().then((items) => setRecs(items.filter((item) => item.entity_type === "tank" && item.entity_id === id)))
+  }, [id, setActiveTank])
 
-  if (loading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <span className="text-sm text-[var(--text-lo)]">Loading tank #{tankId}...</span>
-      </div>
-    )
+  if (!detail) {
+    return <div className="px-4 py-24 text-sm text-[var(--text-lo)]">Loading tank detail...</div>
   }
 
-  if (error || !data) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <span className="text-sm text-[var(--phi-red)]">{error || "Tank not found"}</span>
-      </div>
-    )
-  }
-
-  const { tank, balance, kpi, anomalies } = data
+  const liveData = detail.state_24h.slice(-80).map((point) => ({
+    ts: new Date(point.ts).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }),
+    level: point.level_m,
+    volume: point.volume_m3
+  }))
+  const balance = detail.balance[0]
 
   return (
-    <div className="mx-auto grid max-w-5xl gap-4">
-      <div className="flex items-center gap-4">
-        <a
-          href="/app/map"
-          className="flex h-8 w-8 items-center justify-center rounded border border-[var(--glass-stroke)] text-[var(--text-lo)] hover:border-[var(--acea-cyan)]"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </a>
+    <div className="mx-auto grid max-w-[1450px] gap-5">
+      <section className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="font-[var(--font-jetbrains)] text-xs uppercase tracking-[0.18em] text-[var(--acea-cyan)]">
-            Tank Detail
-          </p>
-          <h1 className="font-[var(--font-unbounded)] text-2xl font-semibold">
-            {tank.properties.name} <SeverityPill severity={tank.properties.severity} />
-          </h1>
+          <div className="text-data text-[var(--acea-cyan)]">Tank {detail.tank.properties.id}</div>
+          <h1 className="text-h1 mt-2">{detail.tank.properties.name}</h1>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <DataBadge label="source" value={detail.tank.properties.data_source ?? "osm"} />
+            <DataBadge label="capacity" value={`${Math.round(detail.tank.properties.capacity_m3 ?? 0)} m³`} tone="neutral" />
+            <DataBadge label="quota" value={`${Math.round(detail.tank.properties.elevation_m ?? 0)} m`} tone="neutral" />
+            <DataBadge label="dma" value={detail.tank.properties.dma_name ?? "n/a"} tone="neutral" />
+          </div>
         </div>
-        <button
-          onClick={() => setExplainOpen(true)}
-          className="ml-auto rounded border border-[var(--glass-stroke)] px-3 py-1.5 text-xs text-[var(--acea-cyan)] hover:border-[var(--acea-cyan)]"
-        >
-          <Info className="mr-1 inline h-3 w-3" />
-          AI Explain
-        </button>
-      </div>
+      </section>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <GlassCard className="p-4">
-          <h2 className="mb-3 flex items-center gap-2 font-[var(--font-unbounded)] text-sm">
-            <Droplets className="h-4 w-4 text-[var(--acea-cyan)]" />
-            Real-time Balance
-          </h2>
-          <div className="space-y-3">
-            <GaugeCard label="Inflow" value={balance.inflow_m3h} maxValue={200} color="var(--acea-cyan)" />
-            <GaugeCard label="Outflow" value={balance.outflow_m3h} maxValue={200} color="var(--acea-teal)" />
-            <GaugeCard label="Net Balance" value={balance.net_balance_m3h} maxValue={50} color="var(--phi-green)" />
-            <GaugeCard label="Fill Rate /h" value={balance.fill_rate_pcth} maxValue={10} color="var(--signal-tank)" />
+      <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+        <GlassCard className="rounded-[1.8rem] p-5">
+          <div className="mb-4 text-sm text-[var(--text-hi)]">Live level chart 24h</div>
+          <div className="h-[22rem]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={liveData}>
+                <CartesianGrid stroke="rgba(173,218,255,0.08)" vertical={false} />
+                <XAxis dataKey="ts" tick={{ fill: "#6983A3", fontSize: 11 }} />
+                <YAxis tick={{ fill: "#6983A3", fontSize: 11 }} />
+                <Tooltip />
+                <Area type="monotone" dataKey="level" stroke="#4bd6ff" fill="rgba(75,214,255,0.18)" />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </GlassCard>
 
-        <GlassCard className="p-4">
-          <h2 className="mb-3 flex items-center gap-2 font-[var(--font-unbounded)] text-sm">
-            <Gauge className="h-4 w-4 text-[var(--acea-cyan)]" />
-            KPIs & Projections
-          </h2>
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-[var(--text-lo)]">Turnover</span>
-              <span className="font-[var(--font-jetbrains)] text-[var(--text-md)]">
-                {kpi.turnover_h.toFixed(1)} h
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-[var(--text-lo)]">Residence Time</span>
-              <span className="font-[var(--font-jetbrains)] text-[var(--text-md)]">
-                {kpi.residence_time_h.toFixed(1)} h
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-[var(--text-lo)]">Z-Score</span>
-              <span
-                className="font-[var(--font-jetbrains)]"
-                style={{
-                  color:
-                    Math.abs(kpi.z_score) > 2
-                      ? "var(--phi-red)"
-                      : Math.abs(kpi.z_score) > 1
-                        ? "var(--phi-yellow)"
-                        : "var(--text-md)"
-                }}
-              >
-                {kpi.z_score.toFixed(2)}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-[var(--text-lo)]">Days to Empty</span>
-              <span className="font-[var(--font-jetbrains)] text-[var(--phi-red)]">
-                {kpi.days_to_empty ?? ">30"}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-[var(--text-lo)]">Days to Full</span>
-              <span className="font-[var(--font-jetbrains)] text-[var(--phi-green)]">
-                {kpi.days_to_full ?? ">30"}
-              </span>
-            </div>
+        <GlassCard className="rounded-[1.8rem] p-5">
+          <div className="mb-4 text-sm text-[var(--text-hi)]">Resilience</div>
+          <Gauge value={detail.kpis.resilience_hours ?? 0} max={96} unit="h" label="Resilience hours" color="var(--phi-yellow)" />
+          <div className="mt-4 grid gap-2">
+            <DataBadge label="headroom" value={`${Math.round(detail.kpis.headroom_pct ?? detail.tank.properties.headroom_pct ?? 0)}%`} />
+            <DataBadge label="residual" value={`${Math.round(balance?.residual_pct ?? detail.kpis.residual_pct ?? 0)}%`} tone="yellow" />
           </div>
         </GlassCard>
-      </div>
+      </section>
 
-      {anomalies.length > 0 && (
-        <GlassCard className="p-4">
-          <h2 className="mb-3 flex items-center gap-2 font-[var(--font-unbounded)] text-sm">
-            <TrendingDown className="h-4 w-4 text-[var(--phi-red)]" />
-            Active Anomalies
-          </h2>
-          <div className="space-y-2">
-            {anomalies.map((anomaly, i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between rounded border border-[var(--phi-yellow)]/30 bg-[var(--phi-yellow)]/5 px-3 py-2"
-              >
-                <span className="font-[var(--font-jetbrains)] text-sm">{anomaly.detector}</span>
-                <span className="font-[var(--font-jetbrains)] text-xs text-[var(--phi-yellow)]">
-                  Severity {anomaly.severity}
-                </span>
+      <section className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+        <GlassCard className="rounded-[1.8rem] p-5">
+          <div className="mb-4 text-sm text-[var(--text-hi)]">Mass balance</div>
+          <div className="grid gap-3">
+            {[
+              ["inflow", balance?.inflow_lps],
+              ["outflow", balance?.outflow_lps],
+              ["demand", balance?.estimated_demand_lps],
+              ["ΔV", balance?.delta_storage_lps],
+              ["residual", balance?.residual_pct]
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-[1.4rem] border border-[rgba(173,218,255,0.1)] bg-[rgba(255,255,255,0.03)] p-3">
+                <div className="text-data text-[var(--text-lo)]">{label}</div>
+                <div className="mt-1 text-lg text-[var(--text-hi)]">{value ?? "n/a"}</div>
               </div>
             ))}
           </div>
         </GlassCard>
-      )}
 
-      <GlassCard className="p-4">
-        <h2 className="mb-3 flex items-center gap-2 font-[var(--font-unbounded)] text-sm">
-          <Network className="h-4 w-4 text-[var(--acea-cyan)]" />
-          Connected Segments
-        </h2>
+        <GlassCard className="rounded-[1.8rem] p-5">
+          <div className="mb-4 text-sm text-[var(--text-hi)]">Segmenti downstream PHI≥2</div>
+          <div className="grid gap-2">
+            {detail.downstream_segments.slice(0, 8).map((segment) => (
+              <Link key={segment.properties.id} href={`/app/segment/${segment.properties.id}`} className="rounded-[1.4rem] border border-[rgba(173,218,255,0.1)] bg-[rgba(255,255,255,0.03)] p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm text-[var(--text-hi)]">Segment {segment.properties.id}</div>
+                  <DataBadge label="phi" value={String(segment.properties.phi)} tone="yellow" />
+                </div>
+                <div className="mt-1 text-sm text-[var(--text-md)]">{segment.properties.material}</div>
+              </Link>
+            ))}
+          </div>
+        </GlassCard>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
+        <GlassCard className="rounded-[1.8rem] p-5">
+          <div className="mb-4 text-sm text-[var(--text-hi)]">Tank anomalies log</div>
+          <div className="grid gap-2">
+            {detail.anomalies.map((anomaly, index) => (
+              <div key={index} className="rounded-[1.4rem] border border-[rgba(173,218,255,0.1)] bg-[rgba(255,255,255,0.03)] p-3">
+                <div className="text-sm text-[var(--text-hi)]">{anomaly.message ?? anomaly.reason ?? anomaly.detector ?? "anomaly"}</div>
+                <div className="mt-1 text-data text-[var(--text-lo)]">{anomaly.level ?? "L1"} · {anomaly.ts ?? "latest"}</div>
+              </div>
+            ))}
+          </div>
+        </GlassCard>
+
+        <ControlRecCard recommendations={recs} onUpdate={() => getControlRecs().then((items) => setRecs(items.filter((item) => item.entity_id === id)))} />
+      </section>
+
+      <GlassCard className="rounded-[1.8rem] p-5">
+        <div className="mb-4 text-sm text-[var(--text-hi)]">Actions</div>
         <div className="flex flex-wrap gap-2">
-          {data.related_segments.map((segId) => (
-            <a
-              key={segId}
-              href={`/app/segment/${segId}`}
-              className="rounded border border-[var(--glass-stroke)] px-2 py-1 text-xs font-[var(--font-jetbrains)] text-[var(--acea-cyan)] hover:border-[var(--acea-cyan)]"
-            >
-              SEG-{segId}
-            </a>
-          ))}
+          <button type="button" onClick={() => setOpenExplain(true)} className="rounded-2xl border border-[rgba(75,214,255,0.24)] px-4 py-3 text-[var(--acea-cyan)]">
+            Spiega stato
+          </button>
+          <Link href="/app/map" className="rounded-2xl border border-[rgba(173,218,255,0.12)] px-4 py-3 text-[var(--text-md)]">
+            Mappa
+          </Link>
         </div>
       </GlassCard>
 
-      <ExplainStream
-        entityType="tank"
-        entityId={tankId}
-        open={explainOpen}
-        onClose={() => setExplainOpen(false)}
-      />
+      <ExplainStream entityType="tank" entityId={id} open={openExplain} onClose={() => setOpenExplain(false)} />
     </div>
   )
 }

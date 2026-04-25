@@ -28,14 +28,10 @@ export function createSession(username: string) {
 }
 
 export function readSession(): DropletSession | null {
-  if (typeof window === "undefined") {
-    return null
-  }
+  if (typeof window === "undefined") return null
 
   const raw = window.localStorage.getItem(SESSION_KEY)
-  if (!raw) {
-    return null
-  }
+  if (!raw) return null
 
   try {
     const session = JSON.parse(atob(raw)) as DropletSession
@@ -59,4 +55,12 @@ export function clearSession() {
 export function validateCredentials(username: string, password: string) {
   const credentials = getMockCredentials()
   return username === credentials.username && password === credentials.password
+}
+
+export function requireSession() {
+  const session = readSession()
+  if (!session) {
+    throw new Error("Unauthenticated")
+  }
+  return session
 }

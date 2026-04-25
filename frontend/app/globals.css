@@ -1,68 +1,81 @@
 @import "tailwindcss";
 
 :root {
-  --bg-0: #050B14;
-  --bg-1: #0A1628;
-  --bg-2: #0F1E35;
-  --bg-3: #14294A;
-  --glass-stroke: rgba(180, 220, 255, 0.12);
-  --glass-fill: rgba(10, 22, 40, 0.55);
-  --glass-highlight: rgba(120, 200, 255, 0.08);
-  --blur-glass: 20px;
-  --acea-deep: #003A7D;
-  --acea-blue: #0A5CA8;
-  --acea-cyan: #22CFFF;
-  --acea-teal: #2DD4BF;
-  --acea-ice: #BAE6FD;
-  --phi-green: #10B981;
-  --phi-yellow: #FBBF24;
-  --phi-orange: #FB923C;
-  --phi-red: #F43F5E;
-  --signal-subs: #A855F7;
-  --signal-ndvi: #10B981;
-  --signal-therm: #F97316;
-  --signal-hydr: #22CFFF;
-  --signal-tank: #2DD4BF;
-  --text-hi: #E2F0FF;
-  --text-md: #94A6BF;
-  --text-lo: #5A6B85;
-  --gradient-liquid: radial-gradient(
-    ellipse at 30% 20%,
-    rgba(34, 207, 255, 0.18) 0%,
-    rgba(10, 92, 168, 0.08) 35%,
-    rgba(5, 11, 20, 0) 70%
-  );
+  --bg-0: #040812;
+  --bg-1: #071120;
+  --bg-2: #0c1a30;
+  --bg-3: #122642;
+  --surface-0: rgba(8, 18, 34, 0.72);
+  --surface-1: rgba(10, 24, 45, 0.76);
+  --surface-2: rgba(14, 31, 57, 0.88);
+  --glass-fill: rgba(8, 18, 34, 0.52);
+  --glass-fill-strong: rgba(8, 18, 34, 0.82);
+  --glass-stroke: rgba(173, 218, 255, 0.12);
+  --glass-stroke-strong: rgba(173, 218, 255, 0.24);
+  --glass-highlight: rgba(106, 223, 255, 0.08);
+  --glass-shadow: 0 30px 80px rgba(0, 0, 0, 0.34);
+  --blur-glass: 22px;
+  --acea-navy: #08356b;
+  --acea-blue: #0a5ca8;
+  --acea-cyan: #4bd6ff;
+  --acea-ice: #d8f4ff;
+  --acea-teal: #44d7c0;
+  --water-blue: #2f90ff;
+  --water-deep: #09182e;
+  --phi-green: #10b981;
+  --phi-yellow: #fbbf24;
+  --phi-orange: #fb923c;
+  --phi-red: #f43f5e;
+  --signal-subs: #9b8cff;
+  --signal-ndvi: #34d399;
+  --signal-therm: #fb923c;
+  --signal-hydr: #4bd6ff;
+  --signal-tank: #44d7c0;
+  --text-hi: #edf8ff;
+  --text-md: #9eb5cf;
+  --text-lo: #6983a3;
+  --grid-stroke: rgba(173, 218, 255, 0.06);
+  --gradient-liquid:
+    radial-gradient(circle at 18% 18%, rgba(75, 214, 255, 0.24), transparent 32%),
+    radial-gradient(circle at 78% 20%, rgba(68, 215, 192, 0.18), transparent 28%),
+    radial-gradient(circle at 62% 75%, rgba(47, 144, 255, 0.16), transparent 32%);
   --stroke-gradient: linear-gradient(
-    135deg,
-    rgba(34, 207, 255, 0.6),
-    rgba(10, 92, 168, 0.2),
-    rgba(45, 212, 191, 0.4)
+    140deg,
+    rgba(75, 214, 255, 0.7),
+    rgba(47, 144, 255, 0.18),
+    rgba(68, 215, 192, 0.52)
+  );
+  --stroke-gradient-soft: linear-gradient(
+    140deg,
+    rgba(75, 214, 255, 0.45),
+    rgba(47, 144, 255, 0.08),
+    rgba(68, 215, 192, 0.3)
   );
 }
 
 @theme inline {
   --color-background: var(--bg-0);
   --color-foreground: var(--text-hi);
-  --color-card: var(--bg-1);
+  --color-card: var(--surface-1);
   --color-card-foreground: var(--text-hi);
-  --color-popover: var(--bg-3);
+  --color-popover: var(--surface-2);
   --color-popover-foreground: var(--text-hi);
   --color-primary: var(--acea-cyan);
   --color-primary-foreground: var(--bg-0);
   --color-secondary: var(--bg-2);
   --color-secondary-foreground: var(--text-hi);
-  --color-muted: rgba(148, 166, 191, 0.12);
+  --color-muted: rgba(158, 181, 207, 0.12);
   --color-muted-foreground: var(--text-md);
   --color-accent: var(--acea-teal);
   --color-accent-foreground: var(--bg-0);
   --color-destructive: var(--phi-red);
   --color-border: var(--glass-stroke);
-  --color-input: rgba(180, 220, 255, 0.14);
+  --color-input: rgba(173, 218, 255, 0.14);
   --color-ring: var(--acea-cyan);
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Unbounded", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
-  --radius: 0.5rem;
+  --font-sans: "Inter", "Inter Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Unbounded", "Unbounded Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "JetBrains Mono Fallback", ui-monospace, monospace;
+  --radius: 1rem;
 }
 
 * {
@@ -72,16 +85,32 @@
 html {
   min-height: 100%;
   background: var(--bg-0);
+  color-scheme: dark;
 }
 
 body {
   min-height: 100vh;
   margin: 0;
-  background:
-    var(--gradient-liquid),
-    linear-gradient(180deg, #050B14 0%, #07101D 46%, #050B14 100%);
   color: var(--text-hi);
+  background:
+    linear-gradient(180deg, rgba(4, 8, 18, 0.85), rgba(4, 8, 18, 1)),
+    var(--gradient-liquid),
+    linear-gradient(135deg, #040812 0%, #071120 38%, #0c1a30 100%);
   font-family: var(--font-inter), "Inter", ui-sans-serif, system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--grid-stroke) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-stroke) 1px, transparent 1px);
+  background-size: 76px 76px;
+  mask-image: radial-gradient(circle at center, black 48%, transparent 96%);
+  opacity: 0.42;
 }
 
 a {
@@ -96,13 +125,142 @@ select {
   font: inherit;
 }
 
-.glass-panel {
+::selection {
+  background: rgba(75, 214, 255, 0.28);
+  color: white;
+}
+
+.text-display {
+  font-family: var(--font-unbounded), "Unbounded", ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.04em;
+}
+
+.text-h1 {
+  font-family: var(--font-unbounded), "Unbounded", ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(2.4rem, 4vw, 4.9rem);
+  line-height: 0.98;
+  letter-spacing: -0.05em;
+}
+
+.text-h2 {
+  font-family: var(--font-unbounded), "Unbounded", ui-sans-serif, system-ui, sans-serif;
+  font-size: clamp(1.35rem, 2vw, 2.1rem);
+  line-height: 1.04;
+  letter-spacing: -0.04em;
+}
+
+.text-body {
+  font-size: 0.98rem;
+  line-height: 1.7;
+  color: var(--text-md);
+}
+
+.text-data {
+  font-family: var(--font-jetbrains), "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.8rem;
+  letter-spacing: -0.02em;
+}
+
+.glass-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 1.4rem;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015)),
-    var(--glass-fill);
-  border: 1px solid var(--glass-stroke);
+    linear-gradient(var(--glass-fill), var(--glass-fill)) padding-box,
+    var(--stroke-gradient-soft) border-box;
+  box-shadow: var(--glass-shadow);
   backdrop-filter: blur(var(--blur-glass));
-  box-shadow: 0 24px 90px rgba(0, 0, 0, 0.32);
+}
+
+.glass-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 20% 12%, rgba(75, 214, 255, 0.1), transparent 28%),
+    radial-gradient(circle at 88% 80%, rgba(68, 215, 192, 0.07), transparent 22%);
+}
+
+.glass-panel {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: 1.5rem;
+  background:
+    linear-gradient(var(--glass-fill), var(--glass-fill)) padding-box,
+    var(--stroke-gradient) border-box;
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(var(--blur-glass));
+}
+
+.liquid-button {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(75, 214, 255, 0.28);
+  background:
+    radial-gradient(circle at 30% 20%, rgba(216, 244, 255, 0.32), transparent 36%),
+    linear-gradient(135deg, rgba(75, 214, 255, 0.22), rgba(47, 144, 255, 0.12)),
+    rgba(8, 18, 34, 0.56);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 14px 30px rgba(12, 28, 56, 0.32);
+  isolation: isolate;
+}
+
+.liquid-button::before {
+  content: "";
+  position: absolute;
+  inset: -60%;
+  background: radial-gradient(circle, rgba(216, 244, 255, 0.16), transparent 55%);
+  transform: scale(0);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.liquid-button:active::before {
+  transform: scale(1);
+  opacity: 1;
+  transition: transform 0.45s ease, opacity 0.45s ease;
+}
+
+.app-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(75, 214, 255, 0.32) transparent;
+}
+
+.app-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.app-scroll::-webkit-scrollbar-thumb {
+  background: rgba(75, 214, 255, 0.26);
+  border-radius: 999px;
+}
+
+.app-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@keyframes floaty {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.94);
+    opacity: 0.75;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
 }
 
 @keyframes shake {
@@ -110,10 +268,10 @@ select {
   100% {
     transform: translateX(0);
   }
-  35% {
-    transform: translateX(-8px);
+  30% {
+    transform: translateX(-10px);
   }
   70% {
-    transform: translateX(8px);
+    transform: translateX(10px);
   }
 }

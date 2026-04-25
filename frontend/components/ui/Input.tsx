@@ -7,16 +7,17 @@ const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLI
     return (
       <input
         type={type}
+        ref={ref}
         className={cn(
-          "h-11 w-full rounded-md border border-[var(--glass-stroke)] bg-[rgba(5,11,20,0.58)] px-3 text-sm text-[var(--text-hi)] outline-none transition placeholder:text-[var(--text-lo)] focus:border-[var(--acea-cyan)] focus:ring-2 focus:ring-[rgba(34,207,255,0.18)]",
+          "h-11 w-full rounded-2xl border border-[rgba(173,218,255,0.14)] bg-[rgba(4,10,20,0.68)] px-4 text-sm text-[var(--text-hi)] outline-none transition placeholder:text-[var(--text-lo)] focus:border-[rgba(75,214,255,0.42)] focus:ring-4 focus:ring-[rgba(75,214,255,0.1)]",
           className
         )}
-        ref={ref}
         {...props}
       />
     )
   }
 )
+
 Input.displayName = "Input"
 
 export { Input }

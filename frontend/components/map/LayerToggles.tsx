@@ -2,18 +2,14 @@
 
 import { cn } from "@/lib/utils"
 
-export type MapLayerKey = "phi" | "tanks" | "incidents" | "dmas" | "sources" | "subsidence" | "ndvi" | "thermal" | "tdoa"
+export type MapLayerKey = "pipes" | "tanks" | "incidents" | "dmas" | "sources"
 
-const labels: { key: MapLayerKey; label: string }[] = [
-  { key: "phi", label: "PHI" },
-  { key: "tanks", label: "Tanks" },
-  { key: "incidents", label: "Incidents" },
-  { key: "dmas", label: "DMAs" },
-  { key: "sources", label: "Sources" },
-  { key: "subsidence", label: "Subsidence" },
-  { key: "ndvi", label: "NDVI resid" },
-  { key: "thermal", label: "Thermal resid" },
-  { key: "tdoa", label: "TDOA" }
+const labels: Array<{ key: MapLayerKey; label: string; shortcut: string }> = [
+  { key: "pipes", label: "Condotte", shortcut: "1" },
+  { key: "tanks", label: "Serbatoi", shortcut: "2" },
+  { key: "incidents", label: "Incidenti", shortcut: "3" },
+  { key: "dmas", label: "DMAs", shortcut: "4" },
+  { key: "sources", label: "Sorgenti", shortcut: "5" }
 ]
 
 type LayerTogglesProps = {
@@ -30,14 +26,14 @@ export function LayerToggles({ enabled, onToggle }: LayerTogglesProps) {
           type="button"
           onClick={() => onToggle(item.key)}
           className={cn(
-            "flex h-8 items-center justify-between rounded-md border px-3 text-xs transition",
+            "flex items-center justify-between rounded-2xl border px-3 py-2 text-sm transition",
             enabled[item.key]
-              ? "border-[rgba(34,207,255,0.42)] bg-[rgba(34,207,255,0.1)] text-[var(--acea-cyan)]"
-              : "border-white/10 bg-white/[0.03] text-[var(--text-md)] hover:border-[var(--glass-stroke)]"
+              ? "border-[rgba(75,214,255,0.24)] bg-[rgba(75,214,255,0.08)] text-[var(--acea-ice)]"
+              : "border-[rgba(173,218,255,0.1)] bg-[rgba(255,255,255,0.03)] text-[var(--text-md)]"
           )}
         >
           <span>{item.label}</span>
-          <span className="h-2 w-2 rounded-full bg-current" />
+          <span className="rounded-full border border-current/20 px-2 py-0.5 text-data">{item.shortcut}</span>
         </button>
       ))}
     </div>
