@@ -118,12 +118,12 @@ export type TankStatePoint = {
 }
 
 export type TankBalanceRow = {
-  ts: string
-  inflow_lps: number
-  outflow_lps: number
-  estimated_demand_lps?: number
-  delta_storage_lps?: number
-  residual_lps?: number
+  day: string
+  inflow_m3: number
+  outflow_m3: number
+  demand_m3?: number
+  delta_volume_m3?: number
+  residual_m3?: number
   residual_pct?: number
   flag?: string | null
 }
@@ -138,22 +138,42 @@ export type TankAnomaly = {
 }
 
 export type TankKpis = {
+  tank_id?: number
   headroom_pct?: number
   resilience_hours?: number
-  level_m?: number
-  volume_m3?: number
-  inflow_lps?: number
-  outflow_lps?: number
+  turnover_h?: number
+  residence_time_h?: number
   residual_pct?: number
+  z_score?: number
+  days_to_empty?: number
+  days_to_full?: number
+  spill_events_month?: number
+}
+
+export type TankBalanceSummary = {
+  tank_id: number
+  window_hours: number
+  inflow_m3h: number
+  outflow_m3h: number
+  demand_m3h: number
+  net_balance_m3h: number
+  fill_rate_pcth: number
+  delta_volume_m3: number
+  residual_m3: number
+  residual_pct: number
+  flag?: string | null
 }
 
 export type TankDetail = {
   tank: TankFeature
   state_24h: TankStatePoint[]
-  balance: TankBalanceRow[]
+  balance: TankBalanceSummary
+  balance_series: TankBalanceRow[]
   anomalies: TankAnomaly[]
   downstream_segments: SegmentFeature[]
-  kpis: TankKpis
+  related_segments?: number[]
+  kpi: TankKpis
+  kpis?: TankKpis
 }
 
 export type DMAFeature = {

@@ -1,11 +1,11 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
-import { GeoJsonLayer, IconLayer, ScatterplotLayer } from "@deck.gl/layers"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { GeoJsonLayer, ScatterplotLayer } from "@deck.gl/layers"
 import DeckGL from "@deck.gl/react"
 import { AnimatePresence, motion } from "framer-motion"
-import { AlertTriangle, MapPinned, Radio, Waves, X } from "lucide-react"
-import { Map } from "react-map-gl/maplibre"
+import { Radio, X } from "lucide-react"
+import { Map, type MapRef } from "react-map-gl/maplibre"
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 
 import { LayerToggles, type MapLayerKey } from "@/components/map/LayerToggles"
@@ -36,7 +36,38 @@ const defaultLayers: Record<MapLayerKey, boolean> = {
   sources: true
 }
 
+function buildSolidImage(width: number, height: number, rgba: [number, number, number, number]) {
+  const data = new Uint8Array(width * height * 4)
+  for (let i = 0; i < width * height; i += 1) {
+    const offset = i * 4
+    data[offset] = rgba[0]
+    data[offset + 1] = rgba[1]
+    data[offset + 2] = rgba[2]
+    data[offset + 3] = rgba[3]
+  }
+  return { width, height, data }
+}
+
+function buildCircleImage(size: number, rgba: [number, number, number, number]) {
+  const data = new Uint8Array(size * size * 4)
+  const radius = size / 2
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const dx = x - radius + 0.5
+      const dy = y - radius + 0.5
+      if (dx * dx + dy * dy > radius * radius) continue
+      const offset = (y * size + x) * 4
+      data[offset] = rgba[0]
+      data[offset + 1] = rgba[1]
+      data[offset + 2] = rgba[2]
+      data[offset + 3] = rgba[3]
+    }
+  }
+  return { width: size, height: size, data }
+}
+
 export function DeckMap() {
+  const mapRef = useRef<MapRef | null>(null)
   const [enabled, setEnabled] = useState<Record<MapLayerKey, boolean>>(defaultLayers)
   const [viewState, setViewState] = useState(initialViewState)
   const [segments, setSegments] = useState<SegmentFeature[]>([])
@@ -64,19 +95,26 @@ export function DeckMap() {
   const lastEvent = useAlertsStore((state) => state.events[0] ?? null)
 
   useEffect(() => {
-    Promise.all([
+    let cancelled = false
+
+    Promise.allSettled([
       getSegments(ciociariaBbox),
       getTanks(),
       getDMAs(),
       getIncidents(),
       getSourceAvailability()
     ]).then(([segmentCollection, tankCollection, dmaList, incidentList, availability]) => {
-      setSegments(segmentCollection.features)
-      setTanks(tankCollection.features)
-      setDmas(dmaList)
-      setIncidents(incidentList.items.slice(0, 80))
-      setSources(availability.sources)
+      if (cancelled) return
+      if (segmentCollection.status === "fulfilled") setSegments(segmentCollection.value.features)
+      if (tankCollection.status === "fulfilled") setTanks(tankCollection.value.features)
+      if (dmaList.status === "fulfilled") setDmas(dmaList.value)
+      if (incidentList.status === "fulfilled") setIncidents(incidentList.value.items.slice(0, 80))
+      if (availability.status === "fulfilled") setSources(availability.value.sources)
     })
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {
@@ -84,7 +122,14 @@ export function DeckMap() {
       setActiveSegmentDetail(null)
       return
     }
-    getSegment(activeSegment).then(setActiveSegmentDetail).catch(() => setActiveSegmentDetail(null))
+    const controller = new AbortController()
+    getSegment(activeSegment, { signal: controller.signal })
+      .then(setActiveSegmentDetail)
+      .catch((error) => {
+        if (error instanceof Error && error.name === "AbortError") return
+        setActiveSegmentDetail(null)
+      })
+    return () => controller.abort()
   }, [activeSegment])
 
   useEffect(() => {
@@ -92,7 +137,14 @@ export function DeckMap() {
       setActiveTankDetail(null)
       return
     }
-    getTank(activeTank).then(setActiveTankDetail).catch(() => setActiveTankDetail(null))
+    const controller = new AbortController()
+    getTank(activeTank, { signal: controller.signal })
+      .then(setActiveTankDetail)
+      .catch((error) => {
+        if (error instanceof Error && error.name === "AbortError") return
+        setActiveTankDetail(null)
+      })
+    return () => controller.abort()
   }, [activeTank])
 
   useEffect(() => {
@@ -122,6 +174,26 @@ export function DeckMap() {
       setMapFocus(null)
     }
   }, [mapFocus, setMapFocus])
+
+  useEffect(() => {
+    const map = mapRef.current?.getMap()
+    if (!map) return
+    const styleMap = map
+
+    function handleStyleImageMissing(event: { id: string }) {
+      if (styleMap.hasImage(event.id)) return
+      if (event.id === "circle-11") {
+        styleMap.addImage(event.id, buildCircleImage(11, [120, 130, 148, 255]))
+      } else if (event.id === "wood-pattern") {
+        styleMap.addImage(event.id, buildSolidImage(8, 8, [72, 86, 104, 255]))
+      }
+    }
+
+    styleMap.on("styleimagemissing", handleStyleImageMissing)
+    return () => {
+      styleMap.off("styleimagemissing", handleStyleImageMissing)
+    }
+  }, [])
 
   const filteredSegments = useMemo(() => {
     return segments.filter((segment) => {
@@ -302,7 +374,7 @@ export function DeckMap() {
         onViewStateChange={({ viewState: nextViewState }) => setViewState(nextViewState as typeof initialViewState)}
         layers={layers}
       >
-        <Map mapStyle="https://tiles.openfreemap.org/styles/dark" />
+        <Map ref={mapRef} mapStyle="https://tiles.openfreemap.org/styles/dark" />
       </DeckGL>
 
       <div className="pointer-events-none fixed inset-x-0 top-20 z-20 flex justify-center px-4">
@@ -313,7 +385,7 @@ export function DeckMap() {
               onChange={(event) => setDmaFilter(event.target.value)}
               className="rounded-2xl border border-[rgba(173,218,255,0.12)] bg-[rgba(4,10,20,0.66)] px-3 py-2 text-sm text-[var(--text-hi)]"
             >
-              <option value="all">Tutti i DMA</option>
+              <option value="all">All DMAs</option>
               {dmas.map((dma) => (
                 <option key={dma.id} value={dma.id}>
                   {dma.name}
@@ -381,7 +453,7 @@ export function DeckMap() {
                 <div className="mt-1 text-data text-[var(--text-lo)]">{lastEvent.ts ?? "live"}</div>
               </>
             ) : (
-              "In attesa del prossimo evento."
+              "Waiting for the next event."
             )}
           </div>
         </GlassCard>
@@ -395,7 +467,7 @@ export function DeckMap() {
             exit={{ x: drawerWidth + 40 }}
             transition={{ type: "spring", stiffness: 260, damping: 28 }}
             style={{ width: drawerWidth }}
-            className="fixed inset-y-0 right-0 z-30 border-l border-[rgba(173,218,255,0.12)] bg-[rgba(4,10,20,0.92)] pt-20 backdrop-blur-[24px]"
+            className="fixed inset-y-0 right-0 z-30 min-w-0 border-l border-[rgba(173,218,255,0.12)] bg-[rgba(4,10,20,0.92)] pt-20 backdrop-blur-[24px]"
           >
             <button
               type="button"
@@ -446,7 +518,7 @@ export function DeckMap() {
               {selectedDma ? (
                 <GlassCard className="rounded-[1.6rem] p-4">
                   <div className="text-sm text-[var(--text-hi)]">{selectedDma.name}</div>
-                  <div className="mt-1 text-sm text-[var(--text-md)]">Popolazione servita {selectedDma.population.toLocaleString()}</div>
+                  <div className="mt-1 text-sm text-[var(--text-md)]">Population served {selectedDma.population.toLocaleString()}</div>
                 </GlassCard>
               ) : null}
             </div>
@@ -470,8 +542,8 @@ function SegmentDrawer({ detail, onOpenMap }: { detail: SegmentDetail; onOpenMap
       <GlassCard className="rounded-[1.6rem] p-4">
         <div className="flex flex-wrap items-center gap-2">
           <PhiPill value={detail.segment.properties.phi} />
-          <DataBadge label="materiale" value={detail.segment.properties.material} tone="neutral" />
-          <DataBadge label="diametro" value={`${detail.segment.properties.diameter_mm} mm`} tone="neutral" />
+          <DataBadge label="material" value={detail.segment.properties.material} tone="neutral" />
+          <DataBadge label="diameter" value={`${detail.segment.properties.diameter_mm} mm`} tone="neutral" />
         </div>
         <div className="mt-3 text-sm text-[var(--text-md)]">{detail.segment.properties.dma_name}</div>
         <div className="mt-4 grid grid-cols-2 gap-2">
@@ -484,8 +556,8 @@ function SegmentDrawer({ detail, onOpenMap }: { detail: SegmentDetail; onOpenMap
         </div>
       </GlassCard>
       <GlassCard className="rounded-[1.6rem] p-4">
-        <div className="mb-3 text-sm font-medium text-[var(--text-hi)]">Serie 90d</div>
-        <div className="h-56">
+        <div className="mb-3 text-sm font-medium text-[var(--text-hi)]">90d series</div>
+        <div className="h-56 min-w-0">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={chartData}>
               <CartesianGrid stroke="rgba(173,218,255,0.08)" vertical={false} />
@@ -514,7 +586,7 @@ function SegmentDrawer({ detail, onOpenMap }: { detail: SegmentDetail; onOpenMap
         onClick={onOpenMap}
         className="rounded-2xl border border-[rgba(75,214,255,0.24)] px-4 py-3 text-left text-sm text-[var(--acea-cyan)]"
       >
-        Apri in mappa
+        Open on map
       </button>
     </div>
   )
@@ -547,7 +619,7 @@ function TankDrawer({
       </GlassCard>
       <GlassCard className="rounded-[1.6rem] p-4">
         <div className="mb-3 text-sm font-medium text-[var(--text-hi)]">Live level 24h</div>
-        <div className="h-56">
+        <div className="h-56 min-w-0">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={liveData}>
               <CartesianGrid stroke="rgba(173,218,255,0.08)" vertical={false} />
@@ -560,7 +632,7 @@ function TankDrawer({
         </div>
       </GlassCard>
       <GlassCard className="rounded-[1.6rem] p-4">
-        <div className="mb-3 text-sm font-medium text-[var(--text-hi)]">Rete locale</div>
+        <div className="mb-3 text-sm font-medium text-[var(--text-hi)]">Local network</div>
         <div className="grid gap-2">
           {adjacentTanks.map((tank) => (
             <button
@@ -573,7 +645,7 @@ function TankDrawer({
                 <div className="text-sm text-[var(--text-hi)]">{tank.properties.name}</div>
                 <div className="text-data text-[var(--text-lo)]">headroom {tank.properties.headroom_pct}%</div>
               </div>
-              <span className="text-sm text-[var(--phi-yellow)]">Vai a {tank.properties.name}</span>
+              <span className="text-sm text-[var(--phi-yellow)]">Go to {tank.properties.name}</span>
             </button>
           ))}
         </div>

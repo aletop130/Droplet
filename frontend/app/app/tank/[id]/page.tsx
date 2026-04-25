@@ -42,11 +42,13 @@ export default function TankDetailPage() {
   }
 
   const liveData = detail.state_24h.slice(-80).map((point) => ({
-    ts: new Date(point.ts).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }),
+    ts: new Date(point.ts).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
     level: point.level_m,
     volume: point.volume_m3
   }))
-  const balance = detail.balance[0]
+  const balance = detail.balance
+  const latestBalanceRow = detail.balance_series[0]
+  const kpis = detail.kpis ?? detail.kpi
 
   return (
     <div className="mx-auto grid max-w-[1450px] gap-5">
@@ -56,7 +58,7 @@ export default function TankDetailPage() {
           <h1 className="text-h1 mt-2">{detail.tank.properties.name}</h1>
           <div className="mt-4 flex flex-wrap gap-2">
             <DataBadge label="source" value={detail.tank.properties.data_source ?? "osm"} />
-            <DataBadge label="capacity" value={`${Math.round(detail.tank.properties.capacity_m3 ?? 0)} m³`} tone="neutral" />
+            <DataBadge label="capacity" value={`${Math.round(detail.tank.properties.capacity_m3 ?? 0)} m3`} tone="neutral" />
             <DataBadge label="quota" value={`${Math.round(detail.tank.properties.elevation_m ?? 0)} m`} tone="neutral" />
             <DataBadge label="dma" value={detail.tank.properties.dma_name ?? "n/a"} tone="neutral" />
           </div>
@@ -66,7 +68,7 @@ export default function TankDetailPage() {
       <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
         <GlassCard className="rounded-[1.8rem] p-5">
           <div className="mb-4 text-sm text-[var(--text-hi)]">Live level chart 24h</div>
-          <div className="h-[22rem]">
+          <div className="h-[22rem] min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={liveData}>
                 <CartesianGrid stroke="rgba(173,218,255,0.08)" vertical={false} />
@@ -81,10 +83,10 @@ export default function TankDetailPage() {
 
         <GlassCard className="rounded-[1.8rem] p-5">
           <div className="mb-4 text-sm text-[var(--text-hi)]">Resilience</div>
-          <Gauge value={detail.kpis.resilience_hours ?? 0} max={96} unit="h" label="Resilience hours" color="var(--phi-yellow)" />
+          <Gauge value={kpis.resilience_hours ?? 0} max={96} unit="h" label="Resilience hours" color="var(--phi-yellow)" />
           <div className="mt-4 grid gap-2">
-            <DataBadge label="headroom" value={`${Math.round(detail.kpis.headroom_pct ?? detail.tank.properties.headroom_pct ?? 0)}%`} />
-            <DataBadge label="residual" value={`${Math.round(balance?.residual_pct ?? detail.kpis.residual_pct ?? 0)}%`} tone="yellow" />
+            <DataBadge label="headroom" value={`${Math.round(kpis.headroom_pct ?? detail.tank.properties.headroom_pct ?? 0)}%`} />
+            <DataBadge label="residual" value={`${Math.round(balance.residual_pct ?? kpis.residual_pct ?? 0)}%`} tone="yellow" />
           </div>
         </GlassCard>
       </section>
@@ -94,11 +96,11 @@ export default function TankDetailPage() {
           <div className="mb-4 text-sm text-[var(--text-hi)]">Mass balance</div>
           <div className="grid gap-3">
             {[
-              ["inflow", balance?.inflow_lps],
-              ["outflow", balance?.outflow_lps],
-              ["demand", balance?.estimated_demand_lps],
-              ["ΔV", balance?.delta_storage_lps],
-              ["residual", balance?.residual_pct]
+              ["inflow m3/h", balance.inflow_m3h],
+              ["outflow m3/h", balance.outflow_m3h],
+              ["demand m3/h", balance.demand_m3h],
+              ["delta volume m3", balance.delta_volume_m3],
+              ["latest residual %", latestBalanceRow?.residual_pct ?? balance.residual_pct]
             ].map(([label, value]) => (
               <div key={label} className="rounded-[1.4rem] border border-[rgba(173,218,255,0.1)] bg-[rgba(255,255,255,0.03)] p-3">
                 <div className="text-data text-[var(--text-lo)]">{label}</div>
@@ -109,10 +111,14 @@ export default function TankDetailPage() {
         </GlassCard>
 
         <GlassCard className="rounded-[1.8rem] p-5">
-          <div className="mb-4 text-sm text-[var(--text-hi)]">Segmenti downstream PHI≥2</div>
+          <div className="mb-4 text-sm text-[var(--text-hi)]">Downstream segments PHI &gt;= 2</div>
           <div className="grid gap-2">
             {detail.downstream_segments.slice(0, 8).map((segment) => (
-              <Link key={segment.properties.id} href={`/app/segment/${segment.properties.id}`} className="rounded-[1.4rem] border border-[rgba(173,218,255,0.1)] bg-[rgba(255,255,255,0.03)] p-3">
+              <Link
+                key={segment.properties.id}
+                href={`/app/segment/${segment.properties.id}`}
+                className="rounded-[1.4rem] border border-[rgba(173,218,255,0.1)] bg-[rgba(255,255,255,0.03)] p-3"
+              >
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-sm text-[var(--text-hi)]">Segment {segment.properties.id}</div>
                   <DataBadge label="phi" value={String(segment.properties.phi)} tone="yellow" />
@@ -144,10 +150,10 @@ export default function TankDetailPage() {
         <div className="mb-4 text-sm text-[var(--text-hi)]">Actions</div>
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={() => setOpenExplain(true)} className="rounded-2xl border border-[rgba(75,214,255,0.24)] px-4 py-3 text-[var(--acea-cyan)]">
-            Spiega stato
+            Explain state
           </button>
           <Link href="/app/map" className="rounded-2xl border border-[rgba(173,218,255,0.12)] px-4 py-3 text-[var(--text-md)]">
-            Mappa
+            Map
           </Link>
         </div>
       </GlassCard>
