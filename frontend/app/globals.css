@@ -1,19 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --bg-0: #edf4fa;
-  --bg-1: #e2edf7;
-  --bg-2: #d4e5f2;
-  --bg-3: #c3d8e9;
-  --surface-0: rgba(248, 252, 255, 0.82);
-  --surface-1: rgba(245, 250, 254, 0.9);
-  --surface-2: rgba(255, 255, 255, 0.96);
-  --glass-fill: rgba(247, 252, 255, 0.82);
-  --glass-fill-strong: rgba(255, 255, 255, 0.94);
-  --glass-stroke: rgba(10, 64, 116, 0.18);
-  --glass-stroke-strong: rgba(10, 64, 116, 0.32);
-  --glass-highlight: rgba(38, 150, 208, 0.12);
-  --glass-shadow: 0 24px 70px rgba(8, 53, 107, 0.18);
+  --bg-0: #dceaf5;
+  --bg-1: #cedfed;
+  --bg-2: #bbd2e4;
+  --bg-3: #9fbcd4;
+  --surface-0: rgba(235, 245, 252, 0.88);
+  --surface-1: rgba(228, 240, 249, 0.93);
+  --surface-2: rgba(242, 248, 253, 0.97);
+  --glass-fill: rgba(232, 243, 251, 0.9);
+  --glass-fill-strong: rgba(241, 248, 253, 0.96);
+  --glass-stroke: rgba(7, 54, 101, 0.24);
+  --glass-stroke-strong: rgba(7, 54, 101, 0.4);
+  --glass-highlight: rgba(24, 120, 216, 0.16);
+  --glass-shadow: 0 24px 70px rgba(7, 45, 91, 0.24);
   --blur-glass: 22px;
   --acea-navy: #08356b;
   --acea-blue: #075395;
@@ -21,7 +21,7 @@
   --acea-ice: #063f75;
   --acea-teal: #26bca9;
   --water-blue: #1878d8;
-  --water-deep: #c6ddeb;
+  --water-deep: #a9c5d9;
   --phi-green: #10b981;
   --phi-yellow: #fbbf24;
   --phi-orange: #fb923c;
@@ -32,23 +32,23 @@
   --signal-hydr: #4bd6ff;
   --signal-tank: #44d7c0;
   --text-hi: #0b1828;
-  --text-md: #374f69;
-  --text-lo: #64798f;
-  --grid-stroke: rgba(8, 53, 107, 0.08);
+  --text-md: #2c435c;
+  --text-lo: #50677f;
+  --grid-stroke: rgba(7, 45, 91, 0.12);
   --gradient-liquid:
-    radial-gradient(circle at 18% 18%, rgba(47, 185, 232, 0.22), transparent 32%),
-    radial-gradient(circle at 78% 20%, rgba(38, 188, 169, 0.16), transparent 28%),
-    radial-gradient(circle at 62% 75%, rgba(24, 120, 216, 0.14), transparent 32%);
+    radial-gradient(circle at 18% 18%, rgba(47, 185, 232, 0.28), transparent 32%),
+    radial-gradient(circle at 78% 20%, rgba(38, 188, 169, 0.2), transparent 28%),
+    radial-gradient(circle at 62% 75%, rgba(24, 120, 216, 0.2), transparent 32%);
   --stroke-gradient: linear-gradient(
     140deg,
     rgba(47, 185, 232, 0.72),
-    rgba(24, 120, 216, 0.24),
+    rgba(24, 120, 216, 0.32),
     rgba(38, 188, 169, 0.54)
   );
   --stroke-gradient-soft: linear-gradient(
     140deg,
     rgba(47, 185, 232, 0.5),
-    rgba(24, 120, 216, 0.14),
+    rgba(24, 120, 216, 0.22),
     rgba(38, 188, 169, 0.34)
   );
 }
@@ -93,9 +93,9 @@ body {
   margin: 0;
   color: var(--text-hi);
   background:
-    linear-gradient(180deg, rgba(237, 244, 250, 0.94), rgba(245, 250, 254, 0.98)),
+    linear-gradient(180deg, rgba(220, 234, 245, 0.96), rgba(234, 244, 251, 0.98)),
     var(--gradient-liquid),
-    linear-gradient(135deg, #edf4fa 0%, #e2edf7 44%, #f8fbff 100%);
+    linear-gradient(135deg, #dceaf5 0%, #cedfed 44%, #edf5fb 100%);
   font-family: var(--font-inter), "Inter", ui-sans-serif, system-ui, sans-serif;
   overflow-x: hidden;
 }
@@ -187,8 +187,8 @@ select {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 20% 12%, rgba(47, 185, 232, 0.12), transparent 28%),
-    radial-gradient(circle at 88% 80%, rgba(38, 188, 169, 0.1), transparent 22%);
+    radial-gradient(circle at 20% 12%, rgba(47, 185, 232, 0.16), transparent 28%),
+    radial-gradient(circle at 88% 80%, rgba(38, 188, 169, 0.14), transparent 22%);
 }
 
 .glass-panel {
@@ -208,10 +208,10 @@ select {
   overflow: hidden;
   border: 1px solid rgba(10, 92, 168, 0.22);
   background:
-    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.72), transparent 36%),
-    linear-gradient(135deg, rgba(47, 185, 232, 0.28), rgba(24, 120, 216, 0.16)),
-    rgba(245, 250, 254, 0.9);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.84), 0 14px 30px rgba(8, 53, 107, 0.16);
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.68), transparent 36%),
+    linear-gradient(135deg, rgba(47, 185, 232, 0.34), rgba(24, 120, 216, 0.24)),
+    rgba(229, 240, 249, 0.94);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78), 0 14px 30px rgba(7, 45, 91, 0.22);
   isolation: isolate;
 }
 
@@ -233,7 +233,7 @@ select {
 
 .app-scroll {
   scrollbar-width: thin;
-  scrollbar-color: rgba(75, 214, 255, 0.32) transparent;
+  scrollbar-color: rgba(24, 120, 216, 0.42) transparent;
 }
 
 .app-scroll::-webkit-scrollbar {
@@ -242,7 +242,7 @@ select {
 }
 
 .app-scroll::-webkit-scrollbar-thumb {
-  background: rgba(75, 214, 255, 0.26);
+  background: rgba(24, 120, 216, 0.36);
   border-radius: 999px;
 }
 
