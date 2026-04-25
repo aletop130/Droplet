@@ -108,6 +108,85 @@ export type TankFeatureCollection = {
   features: TankFeature[]
 }
 
+export type TankNode = {
+  id: number
+  name: string
+  type: "tank"
+  x: number
+  y: number
+  lon?: number
+  lat?: number
+  fillLevel: number
+  level_m: number
+  max_level_m: number
+  capacity_m3: number
+  inflow_lps: number
+  outflow_lps: number
+  headroom_pct: number
+  resilience_hours: number
+  dma_id?: number | null
+  dma_name?: string | null
+  elevation_m?: number | null
+  data_source?: string | null
+  phi: PhiValue
+  connectedPipes: number[]
+}
+
+export type PipeNode = {
+  id: number
+  type: "pipe"
+  x: number
+  y: number
+  path?: [number, number][]
+  flowRate: number
+  maxFlow: number
+  fillPercent: number
+  material: string
+  diameter_mm: number
+  length_m: number
+  phi: PhiValue
+  subsidence: number
+  ndvi: number
+  thermal: number
+  hydraulic: number
+  tank_signal: number
+  install_year?: number | null
+  dma_id?: number | null
+  dma_name?: string | null
+  fromTank: number | null
+  toTank: number | null
+  fromNode?: number | null
+  toNode?: number | null
+}
+
+export type NetworkEdge = {
+  id: string
+  from: string
+  to: string
+  pipe_id: number
+}
+
+export type NetworkArea = {
+  id: number
+  name: string
+  pipe_count: number
+  tank_count: number
+  bounds?: GeoPolygon | null
+}
+
+export type NetworkGraph = {
+  tanks: TankNode[]
+  pipes: PipeNode[]
+  edges: NetworkEdge[]
+  area?: Pick<NetworkArea, "id" | "name"> | null
+  totals?: {
+    tanks: number
+    pipes: number
+    edges: number
+  }
+  generated_at?: string
+}
+
 export type TankStatePoint = {
   ts: string
   level_m: number
@@ -307,6 +386,8 @@ export type ChatCitation = {
 export type ChatStreamChunk = {
   token?: string
   done?: boolean
+  error?: string
+  error_type?: string
   citations?: ChatCitation[]
   audit_log_id?: number
   suggested_actions?: ControlRecommendation[]

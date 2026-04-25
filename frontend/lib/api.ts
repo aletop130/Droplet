@@ -6,6 +6,8 @@ import type {
   DMAFeature,
   ExplainStreamChunk,
   IncidentListResponse,
+  NetworkArea,
+  NetworkGraph,
   PageContext,
   ScarcityForecast,
   SearchOmniResult,
@@ -38,7 +40,6 @@ function buildUrl(path: string, query?: Record<string, QueryValue>) {
 
 async function fetchJson<T>(path: string, init?: RequestInit, query?: Record<string, QueryValue>): Promise<T> {
   const response = await fetch(buildUrl(path, query), {
-    cache: "no-store",
     ...init,
     headers: {
       Accept: "application/json, application/geo+json",
@@ -64,6 +65,15 @@ export function getSegment(id: number, init?: RequestInit) {
 
 export function getTanks(dma?: number) {
   return fetchJson<TankFeatureCollection>("/api/tanks", undefined, { dma })
+}
+
+export function getNetworkGraph(areaId?: number) {
+  return fetchJson<NetworkGraph>("/api/network/graph", undefined, { area_id: areaId })
+}
+
+export async function getNetworkAreas() {
+  const payload = await fetchJson<{ items: NetworkArea[] }>("/api/network/areas")
+  return payload.items
 }
 
 export function getTank(id: number, init?: RequestInit) {

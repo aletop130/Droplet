@@ -7,14 +7,16 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/Button"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { Input } from "@/components/ui/Input"
-import { validateCredentials } from "@/lib/mockAuth"
+import { getMockCredentials, validateCredentials } from "@/lib/mockAuth"
 import { useSessionStore } from "@/store/sessionStore"
 
 export function LoginForm() {
   const router = useRouter()
   const signIn = useSessionStore((state) => state.signIn)
-  const [username, setUsername] = useState("operator")
+  const demoCredentials = getMockCredentials()
+  const [username, setUsername] = useState(demoCredentials.username)
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState(false)
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -24,7 +26,7 @@ export function LoginForm() {
       return
     }
     signIn(username)
-    router.replace("/app")
+    router.replace("/app/network")
   }
 
   return (
@@ -42,23 +44,38 @@ export function LoginForm() {
       <form className="grid gap-4" onSubmit={onSubmit}>
         <label className="grid gap-2 text-sm text-[var(--text-md)]">
           Username
-          <Input value={username} onChange={(event) => setUsername(event.target.value)} placeholder="operator" />
+          <Input value={username} onChange={(event) => setUsername(event.target.value)} placeholder={demoCredentials.username} />
         </label>
         <label className="grid gap-2 text-sm text-[var(--text-md)]">
           Password
-          <Input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="droplet-2026" />
+          <div className="relative">
+            <Input
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="droplet-2026"
+              className="pr-20"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((current) => !current)}
+              className="absolute inset-y-1.5 right-1.5 rounded-xl border border-[rgba(173,218,255,0.14)] px-3 text-xs font-medium uppercase tracking-[0.16em] text-[var(--acea-cyan)] transition hover:border-[rgba(75,214,255,0.35)] hover:bg-[rgba(75,214,255,0.08)]"
+            >
+              {showPassword ? "Hide" : "Show"}
+            </button>
+          </div>
         </label>
         {error ? (
           <div className="rounded-2xl border border-[rgba(244,63,94,0.28)] bg-[rgba(244,63,94,0.08)] px-4 py-3 text-sm text-[var(--phi-red)]">
-            Credenziali non valide
+            Invalid credentials
           </div>
         ) : null}
         <Button type="submit" className="w-full">
-          Entra
+          Sign in
         </Button>
       </form>
 
-      <div className="mt-4 text-center text-sm text-[var(--text-lo)]">Demo: operator · droplet-2026</div>
+      <div className="mt-4 text-center text-sm text-[var(--text-lo)]">Demo: {demoCredentials.username} · {demoCredentials.password}</div>
     </GlassCard>
   )
 }
