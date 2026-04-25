@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { BrainCircuit, Check, Coins, FileText, ImageIcon, Music, Paperclip, RotateCcw, Send, Sparkles, Wrench, X } from "lucide-react"
+import Image from "next/image"
+import { Check, Coins, FileText, ImageIcon, Music, Paperclip, RotateCcw, Send, Sparkles, Wrench, X } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 
@@ -245,7 +246,7 @@ export function AgentChat({ mode = "page" }: AgentChatProps) {
           <div className="min-w-0">
             <div className="flex items-center gap-3">
               <div className="grid h-12 w-12 place-items-center rounded-[1.2rem] border border-[rgba(75,214,255,0.22)] bg-[linear-gradient(180deg,rgba(75,214,255,0.18),rgba(255,255,255,0.7))]">
-                <BrainCircuit className="h-5 w-5 text-[var(--acea-cyan)]" />
+                <Image src="/droplet-mark.svg" alt="" width={26} height={26} className="h-6 w-6" priority />
               </div>
               <div>
                 <div className="flex items-center gap-2">

@@ -12,7 +12,7 @@ import { useSessionStore } from "@/store/sessionStore"
 export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { session, hydrate, signOut } = useSessionStore()
+  const { session, hydrated, hydrate, signOut } = useSessionStore()
   const setActiveRoute = useSelectionStore((state) => state.setActiveRoute)
   const setPageContext = useChatStore((state) => state.setPageContext)
   const activeSegment = useSelectionStore((state) => state.activeSegment)
@@ -33,15 +33,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isMapRoute = useMemo(() => pathname.startsWith("/app/map"), [pathname])
 
   useEffect(() => {
-    if (session === null) {
+    if (hydrated && session === null) {
       const timer = window.setTimeout(() => {
         router.replace("/login")
       }, 120)
       return () => window.clearTimeout(timer)
     }
-  }, [router, session])
+  }, [hydrated, router, session])
 
-  if (!session) {
+  if (!hydrated || !session) {
     return (
       <main className="grid min-h-screen place-items-center text-sm text-[var(--text-md)]">
         Checking operator session...

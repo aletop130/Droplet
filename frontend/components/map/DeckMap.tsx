@@ -86,6 +86,7 @@ export function DeckMap() {
   const [metric, setMetric] = useState<"phi" | "headroom">("phi")
   const [dateRange, setDateRange] = useState("24h")
   const [isResizing, setIsResizing] = useState(false)
+  const [dmaPopup, setDmaPopup] = useState<{ dma: DMAFeature; x: number; y: number } | null>(null)
   const activeSegment = useSelectionStore((state) => state.activeSegment)
   const activeTank = useSelectionStore((state) => state.activeTank)
   const activeDMA = useSelectionStore((state) => state.activeDMA)
@@ -237,7 +238,11 @@ export function DeckMap() {
           getFillColor: [75, 214, 255, 25],
           getLineColor: [75, 214, 255, 90],
           getLineWidth: 1.5,
-          onClick: ({ object }) => object && setActiveDMA((object as { properties: DMAFeature }).properties.id)
+          onClick: ({ object, x, y }) => {
+            if (!object) return
+            setActiveDMA(null)
+            setDmaPopup({ dma: (object as { properties: DMAFeature }).properties, x, y })
+          }
         })
       )
     }
@@ -256,7 +261,11 @@ export function DeckMap() {
           lineWidthMinPixels: 2.5,
           getLineColor: (feature: any) => phiColor(feature.properties.phi) as [number, number, number, number],
           getLineWidth: (feature: any) => 2.5 + feature.properties.phi * 0.45,
-          onClick: ({ object }) => object && setActiveSegment((object as SegmentFeature).properties.id)
+          onClick: ({ object }) => {
+            if (!object) return
+            setDmaPopup(null)
+            setActiveSegment((object as SegmentFeature).properties.id)
+          }
         })
       )
     }
@@ -282,7 +291,11 @@ export function DeckMap() {
             highlightedAdjacentTankIds.has(feature.properties.id)
               ? [251, 191, 36, 255]
               : phiColor(feature.properties.phi_signal ?? feature.properties.severity ?? 1),
-          onClick: ({ object }) => object && setActiveTank((object as TankFeature).properties.id)
+          onClick: ({ object }) => {
+            if (!object) return
+            setDmaPopup(null)
+            setActiveTank((object as TankFeature).properties.id)
+          }
         })
       )
     }
@@ -361,8 +374,7 @@ export function DeckMap() {
     tanks
   ])
 
-  const drawerOpen = !!(activeSegmentDetail || activeTankDetail || activeDMA)
-  const selectedDma = activeDMA ? dmas.find((dma) => dma.id === activeDMA) ?? null : null
+  const drawerOpen = !!(activeSegmentDetail || activeTankDetail)
 
   return (
     <div className="fixed inset-0 z-0">
@@ -412,7 +424,7 @@ export function DeckMap() {
         </GlassCard>
       </div>
 
-      <div className="pointer-events-none fixed left-4 top-32 z-20 w-[240px]">
+       <div className="pointer-events-none fixed right-4 top-60 z-20 w-[240px]">
         <GlassCard className="pointer-events-auto rounded-[1.6rem] p-4">
           <div className="mb-3 flex items-center justify-between">
             <div className="text-sm font-medium text-[var(--text-hi)]">Layer toggles</div>
@@ -503,14 +515,44 @@ export function DeckMap() {
                 />
               ) : null}
 
-              {selectedDma ? (
-                <GlassCard className="rounded-[1.6rem] p-4">
-                  <div className="text-sm text-[var(--text-hi)]">{selectedDma.name}</div>
-                  <div className="mt-1 text-sm text-[var(--text-md)]">Population served {selectedDma.population.toLocaleString()}</div>
-                </GlassCard>
-              ) : null}
             </div>
           </motion.aside>
+        ) : null}
+      </AnimatePresence>
+      <AnimatePresence>
+        {dmaPopup ? (
+          <motion.div
+            initial={{ opacity: 0, y: 8, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 8, scale: 0.96 }}
+            transition={{ duration: 0.16 }}
+            className="pointer-events-auto fixed z-30 w-[230px]"
+            style={{
+              left: Math.min(Math.max(dmaPopup.x, 132), window.innerWidth - 132),
+              top: Math.max(dmaPopup.y - 16, 120),
+              transform: "translate(-50%, -100%)"
+            }}
+          >
+            <GlassCard className="rounded-[1.2rem] p-3">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="text-data text-[var(--text-lo)]">Service area detail</div>
+                  <div className="mt-1 text-sm font-medium text-[var(--text-hi)]">{dmaPopup.dma.name}</div>
+                  <div className="mt-1 text-sm text-[var(--text-md)]">
+                    Population served {dmaPopup.dma.population.toLocaleString("it-IT")}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setDmaPopup(null)}
+                  className="grid h-7 w-7 shrink-0 place-items-center rounded-lg border border-[rgba(173,218,255,0.12)] text-[var(--text-lo)]"
+                  aria-label="Close service area popup"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </GlassCard>
+          </motion.div>
         ) : null}
       </AnimatePresence>
     </div>

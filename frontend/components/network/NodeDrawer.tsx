@@ -1,12 +1,9 @@
 "use client"
 
-import Link from "next/link"
-import { BrainCircuit, ExternalLink, Gauge, Map, X } from "lucide-react"
+import { Gauge, X } from "lucide-react"
 
-import { ExplainStream } from "@/components/explain/ExplainStream"
 import { cn } from "@/lib/utils"
 import type { PipeNode, TankNode } from "@/types/domain"
-import { useState } from "react"
 
 type SelectedNetworkNode =
   | { kind: "tank"; item: TankNode }
@@ -76,8 +73,6 @@ function PipeFlow({ pipe }: { pipe: PipeNode }) {
 }
 
 export function NodeDrawer({ selected, onClose }: NodeDrawerProps) {
-  const [explainOpen, setExplainOpen] = useState(false)
-
   if (!selected) {
     return (
       <aside className="min-h-[30rem] rounded-[1.6rem] border border-[rgba(173,218,255,0.1)] bg-[rgba(255,255,255,0.025)] p-5">
@@ -93,8 +88,6 @@ export function NodeDrawer({ selected, onClose }: NodeDrawerProps) {
 
   const isTank = selected.kind === "tank"
   const item = selected.item
-  const entityType = selected.kind === "tank" ? "tank" : "segment"
-  const detailHref = selected.kind === "tank" ? `/app/tank/${selected.item.id}` : `/app/segment/${selected.item.id}`
   const title = selected.kind === "tank" ? selected.item.name : `Segment ${selected.item.id}`
 
   return (
@@ -162,27 +155,7 @@ export function NodeDrawer({ selected, onClose }: NodeDrawerProps) {
           </>
         )}
 
-        <div className="flex flex-wrap gap-2">
-          <Link href={detailHref} className="inline-flex items-center gap-2 rounded-xl border border-[rgba(75,214,255,0.24)] px-3 py-2 text-sm text-[var(--acea-cyan)]">
-            <ExternalLink className="h-4 w-4" />
-            Detail
-          </Link>
-          <button
-            type="button"
-            onClick={() => setExplainOpen(true)}
-            className="inline-flex items-center gap-2 rounded-xl border border-[rgba(173,218,255,0.12)] px-3 py-2 text-sm text-[var(--text-md)]"
-          >
-            <BrainCircuit className="h-4 w-4" />
-            Explain
-          </button>
-          <Link href="/app/map" className="inline-flex items-center gap-2 rounded-xl border border-[rgba(173,218,255,0.12)] px-3 py-2 text-sm text-[var(--text-md)]">
-            <Map className="h-4 w-4" />
-            Map
-          </Link>
-        </div>
       </div>
-
-      <ExplainStream entityType={entityType} entityId={item.id} open={explainOpen} onClose={() => setExplainOpen(false)} />
     </aside>
   )
 }

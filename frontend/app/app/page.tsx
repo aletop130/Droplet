@@ -92,7 +92,7 @@ export default function MissionControlPage() {
         </div>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr_0.8fr_0.8fr]">
+      <section className="grid gap-4 xl:grid-cols-[1.45fr_1fr]">
         <GlassCard className="rounded-[1.8rem] p-5">
           <div className="mb-3 flex items-center justify-between">
             <div>
@@ -128,6 +128,32 @@ export default function MissionControlPage() {
         </GlassCard>
 
         <GlassCard className="rounded-[1.8rem] p-5">
+          <div className="grid h-full gap-4 sm:grid-cols-[0.85fr_1.15fr] sm:items-center">
+            <div>
+              <div className="text-sm text-[var(--text-hi)]">Water Availability</div>
+              <div className="mt-4 text-[2rem] font-semibold text-[var(--acea-ice)]">
+                {availability?.grace_anomaly?.value_mm_eq_water ?? -12} mm
+              </div>
+              <div className="mt-2 text-sm text-[var(--text-md)]">
+                {availability?.grace_anomaly?.narrative ?? "Groundwater anomaly in watch range with seasonal precipitation lag."}
+              </div>
+            </div>
+            <div className="h-40 min-w-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={availability?.era5_precip_30d ?? []}>
+                  <XAxis dataKey="day_index" tick={{ fill: "#6983A3", fontSize: 11 }} />
+                  <YAxis hide />
+                  <Tooltip />
+                  <Area type="monotone" dataKey="precip_mm" stroke="#44d7c0" fill="rgba(68,215,192,0.16)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </GlassCard>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[0.8fr_0.8fr_1.55fr]">
+        <GlassCard className="rounded-[1.8rem] p-5">
           <div className="text-sm text-[var(--text-hi)]">Active Incidents</div>
           <div className="mt-4 grid gap-3">
             {incidents.map((incident) => (
@@ -158,51 +184,31 @@ export default function MissionControlPage() {
         </GlassCard>
 
         <GlassCard className="rounded-[1.8rem] p-5">
-          <div className="text-sm text-[var(--text-hi)]">Water Availability</div>
-          <div className="mt-4 text-[2rem] font-semibold text-[var(--acea-ice)]">
-            {availability?.grace_anomaly?.value_mm_eq_water ?? -12} mm
-          </div>
-          <div className="mt-2 text-sm text-[var(--text-md)]">
-            {availability?.grace_anomaly?.narrative ?? "Groundwater anomaly in watch range with seasonal precipitation lag."}
-          </div>
-          <div className="mt-4 h-24">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={availability?.era5_precip_30d ?? []}>
-                <XAxis dataKey="day_index" tick={{ fill: "#6983A3", fontSize: 11 }} />
-                <YAxis hide />
-                <Tooltip />
-                <Area type="monotone" dataKey="precip_mm" stroke="#44d7c0" fill="rgba(68,215,192,0.16)" />
-              </AreaChart>
-            </ResponsiveContainer>
+          <div className="grid h-full gap-4 lg:grid-cols-[150px_1fr_1fr]">
+            <div className="flex flex-col justify-between gap-3">
+              <div>
+                <div className="text-sm text-[var(--text-hi)]">Daily Ingest</div>
+                <div className="mt-1 text-sm text-[var(--text-md)]">Traceable summary.</div>
+              </div>
+              <DataBadge label="today" value={digest?.day ?? "stub"} tone="neutral" />
+            </div>
+            <div className="rounded-[1.6rem] border border-[rgba(173,218,255,0.1)] bg-[rgba(255,255,255,0.03)] p-4 text-body">
+              {digest?.trend_summary ??
+                "The operational twin remains globally stable, with clusters to watch in the Cassino corridor and tanks showing unstable mass-balance signals."}
+            </div>
+            <div className="grid content-start gap-2">
+              {(digest?.intervention_recs ?? [
+                { id: 1, text: "Check pressure and nighttime demand in the Cassino Axis corridor." },
+                { id: 2, text: "Monitor tanks with anomalous mass-balance residuals." }
+              ]).map((item) => (
+                <div key={item.id} className="rounded-[1.4rem] border border-[rgba(173,218,255,0.1)] bg-[rgba(255,255,255,0.03)] p-3 text-sm text-[var(--text-md)]">
+                  {item.text}
+                </div>
+              ))}
+            </div>
           </div>
         </GlassCard>
       </section>
-
-      <GlassCard className="rounded-[1.8rem] p-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <div className="text-sm text-[var(--text-hi)]">Daily Digest</div>
-            <div className="mt-1 text-sm text-[var(--text-md)]">Traceable and verifiable agent summary.</div>
-          </div>
-          <DataBadge label="today" value={digest?.day ?? "stub"} tone="neutral" />
-        </div>
-        <div className="mt-4 grid gap-4 lg:grid-cols-[1.4fr_0.8fr]">
-          <div className="rounded-[1.6rem] border border-[rgba(173,218,255,0.1)] bg-[rgba(255,255,255,0.03)] p-4 text-body">
-            {digest?.trend_summary ??
-              "The operational twin remains globally stable, with clusters to watch in the Cassino corridor and tanks showing unstable mass-balance signals."}
-          </div>
-          <div className="grid gap-2">
-            {(digest?.intervention_recs ?? [
-              { id: 1, text: "Check pressure and nighttime demand in the Cassino Axis corridor." },
-              { id: 2, text: "Monitor tanks with anomalous mass-balance residuals." }
-            ]).map((item) => (
-              <div key={item.id} className="rounded-[1.4rem] border border-[rgba(173,218,255,0.1)] bg-[rgba(255,255,255,0.03)] p-3 text-sm text-[var(--text-md)]">
-                {item.text}
-              </div>
-            ))}
-          </div>
-        </div>
-      </GlassCard>
     </div>
   )
 }

@@ -37,7 +37,17 @@ def load_istat() -> dict:
 
 
 def fetch_ids(cur):
-    cur.execute("SELECT id, dma_id FROM pipe_segments ORDER BY id LIMIT 50")
+    cur.execute(
+        """
+        SELECT id, dma_id
+        FROM (
+          SELECT id, dma_id, row_number() OVER (PARTITION BY dma_id ORDER BY id) AS rn
+          FROM pipe_segments
+        ) ranked
+        WHERE rn <= 14
+        ORDER BY dma_id, rn
+        """
+    )
     segments = cur.fetchall()
     cur.execute("SELECT id, attrs->>'data_source', COALESCE((attrs->>'capacity_m3')::float, 0) FROM pipe_nodes WHERE node_type='tank' ORDER BY id LIMIT 12")
     tanks = cur.fetchall()
@@ -120,8 +130,9 @@ def seed_kpis(cur, istat: dict):
 def seed_anomaly_scores(cur, segments):
     now = datetime.now(timezone.utc)
     rows = []
-    for index, (segment_id, dma_id) in enumerate(segments[:50], start=1):
-        phi = min(3, max(0, index % 4))
+    for index, (segment_id, dma_id) in enumerate(segments, start=1):
+        dma_bias = (int(dma_id or 1) + index) % 3
+        phi = 3 if index % 5 in {0, 1} else 2 if dma_bias != 0 else 1
         base = 0.22 + (phi * 0.17)
         rows.append(
             (
@@ -151,9 +162,9 @@ def seed_incidents(cur, segments, tanks, dmas):
     dma_names = {dma_id: name for dma_id, name in dmas}
     now = datetime.now(timezone.utc)
     incident_ids = []
-    top_segments = segments[:10]
+    top_segments = segments[:36]
     for idx, (segment_id, dma_id) in enumerate(top_segments, start=1):
-        severity = 3 if idx <= 3 else 2 if idx <= 7 else 1
+        severity = 3 if idx % 6 in {0, 1} else 2 if idx % 3 != 0 else 1
         title = f"Perdita probabile FD-{segment_id} DMA-{dma_id}"
         cur.execute(
             """

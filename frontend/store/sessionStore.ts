@@ -6,6 +6,7 @@ import { clearSession, createSession, readSession, type DropletSession } from "@
 
 type SessionState = {
   session: DropletSession | null
+  hydrated: boolean
   hydrate: () => void
   signIn: (username: string) => void
   signOut: () => void
@@ -13,10 +14,11 @@ type SessionState = {
 
 export const useSessionStore = create<SessionState>((set) => ({
   session: null,
-  hydrate: () => set({ session: readSession() }),
-  signIn: (username) => set({ session: createSession(username) }),
+  hydrated: false,
+  hydrate: () => set({ session: readSession(), hydrated: true }),
+  signIn: (username) => set({ session: createSession(username), hydrated: true }),
   signOut: () => {
     clearSession()
-    set({ session: null })
+    set({ session: null, hydrated: true })
   }
 }))
