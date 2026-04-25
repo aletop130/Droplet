@@ -7,6 +7,7 @@ import {
   AlertTriangle,
   Bot,
   ChevronLeft,
+  Cable,
   GitBranch,
   Layers,
   LayoutDashboard,
@@ -16,18 +17,20 @@ import {
   Waves
 } from "lucide-react"
 
+import { Button } from "@/components/ui/Button"
 import { cn } from "@/lib/utils"
 
 const navItems = [
   { href: "/app", label: "Mission Control", icon: LayoutDashboard },
-  { href: "/app/map", label: "Mappa", icon: Map },
-  { href: "/app/tank/2222", label: "Serbatoi", icon: Waves },
-  { href: "/app/segment/130", label: "Condotte", icon: GitBranch },
+  { href: "/app/map", label: "Map", icon: Map },
+  { href: "/app/chat", label: "AI Chat", icon: Bot },
+  { href: "/app/network", label: "Network", icon: Cable },
+  { href: "/app/segment/130", label: "Pipes", icon: GitBranch },
   { href: "/app/dma/4", label: "DMAs", icon: Layers },
-  { href: "/app/incidents", label: "Incidenti", icon: AlertTriangle },
-  { href: "/app/source", label: "Sorgenti", icon: Waves },
+  { href: "/app/incidents", label: "Incidents", icon: AlertTriangle },
+  { href: "/app/source", label: "Sources", icon: Waves },
   { href: "/app/audit", label: "Audit", icon: ShieldCheck },
-  { href: "/app/settings", label: "Impostazioni", icon: Settings }
+  { href: "/app/settings", label: "Settings", icon: Settings }
 ]
 
 export function SideNav() {
@@ -80,6 +83,8 @@ export function SideNav() {
             )
           })}
         </nav>
+
+        
       </div>
     </aside>
   )
