@@ -23,7 +23,7 @@ const config: Config = {
         data: ["0.8rem", { lineHeight: "1.4", letterSpacing: "-0.02em" }]
       },
       boxShadow: {
-        glass: "0 24px 70px rgba(8,53,107,0.18)"
+        glass: "0 24px 70px rgba(7,45,91,0.24)"
       }
     }
   },
@@ -64,15 +64,15 @@ const config: Config = {
           background:
             "linear-gradient(var(--glass-fill), var(--glass-fill)) padding-box, var(--stroke-gradient-soft) border-box",
           backdropFilter: "blur(var(--blur-glass))",
-          boxShadow: "0 30px 80px rgba(0,0,0,0.34)"
+          boxShadow: "0 24px 70px rgba(7,45,91,0.24)"
         },
         ".liquid-button": {
           position: "relative",
           overflow: "hidden",
-          border: "1px solid rgba(75,214,255,0.28)",
+          border: "1px solid rgba(10,92,168,0.28)",
           background:
-            "radial-gradient(circle at 30% 20%, rgba(255,255,255,0.72), transparent 36%), linear-gradient(135deg, rgba(47,185,232,0.28), rgba(24,120,216,0.16)), rgba(245,250,254,0.9)",
-          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.84), 0 14px 30px rgba(8,53,107,0.16)"
+            "radial-gradient(circle at 30% 20%, rgba(255,255,255,0.68), transparent 36%), linear-gradient(135deg, rgba(47,185,232,0.34), rgba(24,120,216,0.24)), rgba(229,240,249,0.94)",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.78), 0 14px 30px rgba(7,45,91,0.22)"
         }
       })
     }
