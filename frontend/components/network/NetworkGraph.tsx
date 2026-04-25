@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import type { PointerEvent, WheelEvent } from "react"
+import type { PointerEvent } from "react"
 import { Activity, Droplets, MapPinned, RotateCcw, Search, ZoomIn, ZoomOut } from "lucide-react"
 
 import { getNetworkAreas, getNetworkGraph } from "@/lib/api"
@@ -18,6 +18,17 @@ type ViewState = {
   scale: number
   x: number
   y: number
+}
+
+type DragState = {
+  pointerId: number
+  startX: number
+  startY: number
+  lastX: number
+  lastY: number
+  view: ViewState
+  moved: boolean
+  frame: number | null
 }
 
 const CANVAS_WIDTH = 1180
@@ -108,8 +119,34 @@ export function NetworkGraph({ embedded = false }: NetworkGraphProps) {
   const [hovered, setHovered] = useState<string | null>(null)
   const [query, setQuery] = useState("")
   const [view, setView] = useState<ViewState>({ scale: 1, x: 0, y: 0 })
-  const dragRef = useRef<{ pointerId: number; x: number; y: number; view: ViewState } | null>(null)
+  const dragRef = useRef<DragState | null>(null)
+  const viewRef = useRef(view)
+  const suppressClickRef = useRef(false)
   const svgRef = useRef<SVGSVGElement>(null)
+
+  useEffect(() => {
+    viewRef.current = view
+  }, [view])
+
+  useEffect(() => {
+    const svg = svgRef.current
+    if (!svg) return
+
+    const handleNativeWheel = (event: WheelEvent) => {
+      event.preventDefault()
+      const rect = svg.getBoundingClientRect()
+      const anchor = {
+        x: ((event.clientX - rect.left) / rect.width) * CANVAS_WIDTH,
+        y: ((event.clientY - rect.top) / rect.height) * CANVAS_HEIGHT
+      }
+      zoomAt(event.deltaY > 0 ? 0.9 : 1.1, anchor)
+    }
+
+    svg.addEventListener("wheel", handleNativeWheel, { passive: false })
+    return () => {
+      svg.removeEventListener("wheel", handleNativeWheel)
+    }
+  }, [])
 
   useEffect(() => {
     let mounted = true
@@ -183,53 +220,81 @@ export function NetworkGraph({ embedded = false }: NetworkGraphProps) {
   }
 
   function zoomAt(delta: number, anchor: { x: number; y: number }) {
-    setView((current) => {
-      const nextScale = clamp(current.scale * delta, 0.55, 4)
-      const contentX = (anchor.x - current.x) / current.scale
-      const contentY = (anchor.y - current.y) / current.scale
-
-      return {
-        scale: nextScale,
-        x: anchor.x - contentX * nextScale,
-        y: anchor.y - contentY * nextScale
-      }
-    })
+    const current = viewRef.current
+    const nextScale = clamp(current.scale * delta, 0.55, 4)
+    const contentX = (anchor.x - current.x) / current.scale
+    const contentY = (anchor.y - current.y) / current.scale
+    const next = {
+      scale: nextScale,
+      x: anchor.x - contentX * nextScale,
+      y: anchor.y - contentY * nextScale
+    }
+    viewRef.current = next
+    setView(next)
   }
 
   function zoomBy(delta: number) {
     zoomAt(delta, { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2 })
   }
 
-  function handleWheel(event: WheelEvent<SVGSVGElement>) {
-    event.preventDefault()
-    const rect = event.currentTarget.getBoundingClientRect()
-    const anchor = {
-      x: ((event.clientX - rect.left) / rect.width) * CANVAS_WIDTH,
-      y: ((event.clientY - rect.top) / rect.height) * CANVAS_HEIGHT
-    }
-    zoomAt(event.deltaY > 0 ? 0.9 : 1.1, anchor)
-  }
-
   function beginPan(event: PointerEvent<SVGSVGElement>) {
-    if ((event.target as Element).closest("[data-network-node='true']")) return
-    dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, view }
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      lastX: event.clientX,
+      lastY: event.clientY,
+      view: viewRef.current,
+      moved: false,
+      frame: null
+    }
     event.currentTarget.setPointerCapture(event.pointerId)
   }
 
   function movePan(event: PointerEvent<SVGSVGElement>) {
     const drag = dragRef.current
     if (!drag || drag.pointerId !== event.pointerId) return
-    setView({
-      scale: drag.view.scale,
-      x: drag.view.x + event.clientX - drag.x,
-      y: drag.view.y + event.clientY - drag.y
+    drag.lastX = event.clientX
+    drag.lastY = event.clientY
+    drag.moved = drag.moved || Math.hypot(drag.lastX - drag.startX, drag.lastY - drag.startY) > 4
+    if (drag.frame != null) return
+    drag.frame = window.requestAnimationFrame(() => {
+      const currentDrag = dragRef.current
+      if (!currentDrag) return
+      const next = {
+        scale: currentDrag.view.scale,
+        x: currentDrag.view.x + currentDrag.lastX - currentDrag.startX,
+        y: currentDrag.view.y + currentDrag.lastY - currentDrag.startY
+      }
+      viewRef.current = next
+      setView(next)
+      currentDrag.frame = null
     })
   }
 
   function endPan(event: PointerEvent<SVGSVGElement>) {
     if (dragRef.current?.pointerId === event.pointerId) {
+      if (dragRef.current.frame != null) {
+        window.cancelAnimationFrame(dragRef.current.frame)
+      }
+      suppressClickRef.current = dragRef.current.moved
+      if (suppressClickRef.current) {
+        window.setTimeout(() => {
+          suppressClickRef.current = false
+        }, 0)
+      }
       dragRef.current = null
     }
+  }
+
+  function selectPipe(pipe: PipeNode) {
+    if (suppressClickRef.current) return
+    setSelected({ kind: "pipe", item: pipe })
+  }
+
+  function selectTank(tank: TankNode) {
+    if (suppressClickRef.current) return
+    setSelected({ kind: "tank", item: tank })
   }
 
   if (error) {
@@ -304,6 +369,18 @@ export function NetworkGraph({ embedded = false }: NetworkGraphProps) {
           </div>
 
           <div className="relative aspect-[16/10] min-h-[33rem] overflow-hidden rounded-[1.2rem] border border-[var(--glass-stroke)] bg-[radial-gradient(circle_at_28%_16%,rgba(75,214,255,0.14),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.92),rgba(239,247,255,0.96))]">
+            <div className="pointer-events-none absolute left-4 top-4 z-10 max-w-[min(30rem,calc(100%-2rem))] rounded-2xl border border-[rgba(8,53,107,0.12)] bg-[rgba(255,255,255,0.9)] px-4 py-3 shadow-[0_18px_50px_rgba(8,53,107,0.12)]">
+              <div className="flex items-center gap-2 text-data text-[var(--acea-cyan)]">
+                <MapPinned className="h-3.5 w-3.5" />
+                Network area
+              </div>
+              <div className="mt-1 truncate text-sm font-semibold text-[var(--text-hi)]">
+                {areas.find((area) => area.id === selectedAreaId)?.name ?? graph?.area?.name ?? "Ciociaria network"}
+              </div>
+              <div className="mt-1 text-data text-[var(--text-lo)]">
+                Drag to pan · wheel zooms on cursor
+              </div>
+            </div>
             {loading || !graph ? (
               <div className="absolute inset-0 grid place-items-center">
                 <div className="flex items-center gap-3 text-sm text-[var(--text-md)]">
@@ -316,7 +393,6 @@ export function NetworkGraph({ embedded = false }: NetworkGraphProps) {
               ref={svgRef}
               viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
               className="h-full w-full cursor-grab touch-none active:cursor-grabbing"
-              onWheel={handleWheel}
               onPointerDown={beginPan}
               onPointerMove={movePan}
               onPointerUp={endPan}
@@ -360,7 +436,7 @@ export function NetworkGraph({ embedded = false }: NetworkGraphProps) {
                         data-network-node="true"
                         onPointerEnter={() => setHovered(`pipe:${pipe.id}`)}
                         onPointerLeave={() => setHovered(null)}
-                        onClick={() => setSelected({ kind: "pipe", item: pipe })}
+                        onClick={() => selectPipe(pipe)}
                       />
                     </g>
                   )
@@ -380,7 +456,7 @@ export function NetworkGraph({ embedded = false }: NetworkGraphProps) {
                       data-network-node="true"
                       onPointerEnter={() => setHovered(`tank:${tank.id}`)}
                       onPointerLeave={() => setHovered(null)}
-                      onClick={() => setSelected({ kind: "tank", item: tank })}
+                      onClick={() => selectTank(tank)}
                     >
                       <circle r={radius + 8} fill="rgba(75,214,255,0.08)" opacity={active || hovered === `tank:${tank.id}` ? 1 : 0} />
                       <clipPath id={`tank-clip-${tank.id}`}>
@@ -403,6 +479,21 @@ export function NetworkGraph({ embedded = false }: NetworkGraphProps) {
                           <text x="10" y="15" fill="#102033" fontSize="12" fontWeight="600">{tank.name}</text>
                           <text x="10" y="29" fill="#4b6078" fontSize="11">{Math.round(tank.fillLevel)}% full</text>
                         </g>
+                      ) : null}
+                      {view.scale > 1.45 ? (
+                        <text
+                          x={0}
+                          y={radius + 22}
+                          textAnchor="middle"
+                          fill="#27405c"
+                          fontSize="11"
+                          fontWeight="600"
+                          paintOrder="stroke"
+                          stroke="rgba(255,255,255,0.9)"
+                          strokeWidth="4"
+                        >
+                          {tank.name}
+                        </text>
                       ) : null}
                     </g>
                   )
