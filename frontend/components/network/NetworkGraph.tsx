@@ -29,6 +29,7 @@ type DragState = {
   view: ViewState
   moved: boolean
   frame: number | null
+  target: SelectedNetworkNode
 }
 
 const CANVAS_WIDTH = 1180
@@ -121,7 +122,6 @@ export function NetworkGraph({ embedded = false }: NetworkGraphProps) {
   const [view, setView] = useState<ViewState>({ scale: 1, x: 0, y: 0 })
   const dragRef = useRef<DragState | null>(null)
   const viewRef = useRef(view)
-  const suppressClickRef = useRef(false)
   const svgRef = useRef<SVGSVGElement>(null)
 
   useEffect(() => {
@@ -238,6 +238,16 @@ export function NetworkGraph({ embedded = false }: NetworkGraphProps) {
   }
 
   function beginPan(event: PointerEvent<SVGSVGElement>) {
+    const nodeElement = (event.target as Element).closest("[data-network-node='true']")
+    const kind = nodeElement?.getAttribute("data-network-kind")
+    const id = Number(nodeElement?.getAttribute("data-network-id"))
+    const target =
+      kind === "pipe"
+        ? projected.pipes.find((pipe) => pipe.id === id)
+        : kind === "tank"
+          ? projected.tanks.find((tank) => tank.id === id)
+          : null
+
     dragRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
@@ -246,7 +256,8 @@ export function NetworkGraph({ embedded = false }: NetworkGraphProps) {
       lastY: event.clientY,
       view: viewRef.current,
       moved: false,
-      frame: null
+      frame: null,
+      target: target ? { kind: kind as "pipe" | "tank", item: target } as SelectedNetworkNode : null
     }
     event.currentTarget.setPointerCapture(event.pointerId)
   }
@@ -273,28 +284,16 @@ export function NetworkGraph({ embedded = false }: NetworkGraphProps) {
   }
 
   function endPan(event: PointerEvent<SVGSVGElement>) {
-    if (dragRef.current?.pointerId === event.pointerId) {
-      if (dragRef.current.frame != null) {
-        window.cancelAnimationFrame(dragRef.current.frame)
+    const drag = dragRef.current
+    if (drag?.pointerId === event.pointerId) {
+      if (drag.frame != null) {
+        window.cancelAnimationFrame(drag.frame)
       }
-      suppressClickRef.current = dragRef.current.moved
-      if (suppressClickRef.current) {
-        window.setTimeout(() => {
-          suppressClickRef.current = false
-        }, 0)
+      if (!drag.moved && drag.target) {
+        setSelected(drag.target)
       }
       dragRef.current = null
     }
-  }
-
-  function selectPipe(pipe: PipeNode) {
-    if (suppressClickRef.current) return
-    setSelected({ kind: "pipe", item: pipe })
-  }
-
-  function selectTank(tank: TankNode) {
-    if (suppressClickRef.current) return
-    setSelected({ kind: "tank", item: tank })
   }
 
   if (error) {
@@ -434,9 +433,10 @@ export function NetworkGraph({ embedded = false }: NetworkGraphProps) {
                         strokeWidth={20}
                         className="cursor-pointer"
                         data-network-node="true"
+                        data-network-kind="pipe"
+                        data-network-id={pipe.id}
                         onPointerEnter={() => setHovered(`pipe:${pipe.id}`)}
                         onPointerLeave={() => setHovered(null)}
-                        onClick={() => selectPipe(pipe)}
                       />
                     </g>
                   )
@@ -454,9 +454,10 @@ export function NetworkGraph({ embedded = false }: NetworkGraphProps) {
                       opacity={visible ? 1 : 0.16}
                       className="cursor-pointer"
                       data-network-node="true"
+                      data-network-kind="tank"
+                      data-network-id={tank.id}
                       onPointerEnter={() => setHovered(`tank:${tank.id}`)}
                       onPointerLeave={() => setHovered(null)}
-                      onClick={() => selectTank(tank)}
                     >
                       <circle r={radius + 8} fill="rgba(75,214,255,0.08)" opacity={active || hovered === `tank:${tank.id}` ? 1 : 0} />
                       <clipPath id={`tank-clip-${tank.id}`}>
