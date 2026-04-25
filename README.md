@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="frontend/public/droplet-logo.svg" alt="Droplet" width="260" />
+  <img src="frontend/public/droplet-mark.svg" alt="Droplet" width="96" />
 </p>
 
 <h1 align="center">Droplet</h1>
