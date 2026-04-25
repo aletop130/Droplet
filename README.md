@@ -323,6 +323,18 @@ Note: the current frontend `lint` script expects an ESLint v9 flat config. If `e
 
 Production secrets are injected through the hosting platform secret managers. Local `.env` files are ignored by Git and should not be committed.
 
+### Backend Deployment to Hugging Face Spaces
+
+The backend is committed in this repository as a normal directory so the source code is visible on GitHub. Hugging Face Spaces remains a separate Git deployment target.
+
+To publish backend changes to the Space, push only the `backend/` subtree to the Space repository:
+
+```bash
+git subtree push --prefix backend https://huggingface.co/spaces/Alessandro0709/Droplet main
+```
+
+Do not store Hugging Face tokens in Git remotes. Use your Git credential manager, `huggingface-cli login`, or a temporary authenticated URL only for the command that needs it.
+
 ## Compliance and Auditability
 
 Droplet is designed around EU-regulated operational decision support:
