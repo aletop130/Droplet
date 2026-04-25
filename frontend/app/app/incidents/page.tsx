@@ -36,7 +36,7 @@ export default function IncidentsPage() {
   const [incidents, setIncidents] = useState<Incident[]>([])
   const [selected, setSelected] = useState<Incident | null>(null)
   const [recs, setRecs] = useState<ControlRecommendation[]>([])
-  const [tab, setTab] = useState<"all" | "open" | "investigating" | "resolved">("all")
+  const [tab, setTab] = useState<"all" | "open" | "resolved">("all")
   const [search, setSearch] = useState("")
   const liveEvents = useAlertsStore((state) => state.events)
 
@@ -73,14 +73,14 @@ export default function IncidentsPage() {
       </section>
 
       <div className="flex flex-wrap gap-2">
-        {(["all", "open", "investigating", "resolved"] as const).map((item) => (
+        {(["all", "open", "resolved"] as const).map((item) => (
           <button
             key={item}
             type="button"
             onClick={() => setTab(item)}
             className={`rounded-full border px-3 py-1 text-data ${tab === item ? "border-[rgba(75,214,255,0.24)] text-[var(--acea-cyan)]" : "border-[rgba(173,218,255,0.12)] text-[var(--text-lo)]"}`}
           >
-            {item}
+            {item === "open" ? "investigating" : item}
           </button>
         ))}
         <div className="ml-auto w-full max-w-xs">
@@ -103,7 +103,7 @@ export default function IncidentsPage() {
             >
               <div className="flex items-center justify-between gap-3">
                 <div className="text-sm text-[var(--text-hi)]">{incident.title}</div>
-                <div className="text-data text-[var(--text-lo)]">{incident.status}</div>
+                <div className="text-data text-[var(--text-lo)]">{incident.status === "open" ? "investigating" : incident.status}</div>
               </div>
               <div className="mt-1 text-sm text-[var(--text-md)]">{incidentExplanation(incident)}</div>
             </button>

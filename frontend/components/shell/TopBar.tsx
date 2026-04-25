@@ -18,13 +18,8 @@ export function TopBar({ user, onLogout }: TopBarProps) {
     <header className="pointer-events-none fixed inset-x-0 top-0 z-40 px-3 pt-3 lg:px-5">
       <div className="pointer-events-auto glass-panel flex h-16 items-center justify-between rounded-[1.6rem] px-3 sm:px-4">
         <div className="flex min-w-0 items-center gap-3">
-          <Link href="/app" className="flex min-w-0 items-center gap-3">
-            <div className="relative grid h-11 w-11 place-items-center rounded-2xl border border-[rgba(10,92,168,0.14)] bg-[rgba(255,255,255,0.62)]">
-              <Image src="/droplet-mark.svg" alt="" width={27} height={27} priority />
-            </div>
-            <div className="hidden min-w-0 sm:block">
-              <Image src="/droplet-logo.svg" alt="Droplet" width={152} height={32} priority className="h-7 w-auto" />
-            </div>
+          <Link href="/app" className="flex min-w-0 items-center">
+            <Image src="/droplet-logo.svg" alt="Droplet" width={152} height={32} priority className="h-7 w-auto" />
           </Link>
         </div>
 

@@ -21,14 +21,14 @@ export function Gauge({ value, max = 100, label, unit = "%", color = "var(--acea
           fill="none"
           stroke="rgba(173,218,255,0.12)"
           strokeWidth="14"
-          strokeLinecap="round"
+          strokeLinecap="butt"
         />
         <path
           d="M 26 90 A 64 64 0 0 1 154 90"
           fill="none"
           stroke={color}
           strokeWidth="14"
-          strokeLinecap="round"
+          strokeLinecap="butt"
           strokeDasharray={`${dash} ${circumference}`}
         />
         <circle cx="90" cy="90" r="5" fill={color} />

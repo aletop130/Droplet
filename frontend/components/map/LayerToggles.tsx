@@ -21,7 +21,7 @@ type LayerTogglesProps = {
 
 export function LayerToggles({ enabled, onToggle }: LayerTogglesProps) {
   return (
-    <div className="grid gap-2.5">
+    <div className="flex flex-col gap-2.5 items-end">
       {labels.map((item) => (
         <button
           key={item.key}
@@ -35,21 +35,21 @@ export function LayerToggles({ enabled, onToggle }: LayerTogglesProps) {
           )}
         >
           <span className="flex items-center gap-3">
-            <span
-              className={cn(
-                "grid h-9 w-9 place-items-center rounded-xl border transition",
-                enabled[item.key]
-                  ? "border-[rgba(216,244,255,0.22)] bg-[rgba(216,244,255,0.12)] text-[var(--acea-cyan)]"
-                  : "border-[var(--glass-stroke)] bg-[rgba(255,255,255,0.7)] text-[var(--text-lo)] group-hover:text-[var(--text-md)]"
-              )}
-            >
-              {enabled[item.key] ? <Check className="h-4 w-4" /> : <span className="h-2.5 w-2.5 rounded-full bg-current/80" />}
-            </span>
             <span>
               <span className="block text-sm font-medium">{item.label}</span>
               <span className="block text-data text-[var(--text-lo)]">
                 {enabled[item.key] ? "Visible on map" : "Hidden from map"}
               </span>
+            </span>
+            <span
+              className={cn(
+                "grid h-7 w-7 place-items-center rounded-lg border transition",
+                enabled[item.key]
+                  ? "border-[rgba(216,244,255,0.22)] bg-[rgba(216,244,255,0.12)] text-[var(--acea-cyan)]"
+                  : "border-[var(--glass-stroke)] bg-[rgba(255,255,255,0.7)] text-[var(--text-lo)] group-hover:text-[var(--text-md)]"
+              )}
+            >
+              {enabled[item.key] ? <Check className="h-3 w-3" /> : <span className="h-2 w-2 rounded-full bg-current/80" />}
             </span>
           </span>
           <span className="rounded-full border border-current/15 bg-[rgba(255,255,255,0.72)] px-2.5 py-1 text-data">{item.shortcut}</span>

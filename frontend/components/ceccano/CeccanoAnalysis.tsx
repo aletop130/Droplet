@@ -5,18 +5,14 @@ import {
   AlertTriangle,
   Bot,
   CheckCircle2,
-  Database,
   Droplet,
   Gauge,
   Layers,
   Moon,
   Radio,
-  RotateCcw,
-  Send,
   SlidersHorizontal,
   Sun,
-  Waves,
-  X
+  Waves
 } from "lucide-react"
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 
@@ -47,16 +43,10 @@ const layerLabels: Array<{ key: LayerKey; label: string; icon: typeof Layers }> 
   { key: "users", label: "Utenze", icon: CheckCircle2 }
 ]
 
-const agentPrompts = [
-  "Come funziona la distrettualizzazione?",
-  "Quali valvole regolare ora?",
-  "Calcola il rischio pressione nelle prossime 24 ore."
-]
-
 const statusStyle: Record<CeccanoDistrict["status"], string> = {
   normal: "border-[rgba(68,215,192,0.26)] bg-[rgba(68,215,192,0.12)] text-[var(--acea-teal)]",
   critical: "border-[rgba(244,63,94,0.34)] bg-[rgba(244,63,94,0.14)] text-[var(--phi-red)]",
-  emergency: "border-[rgba(251,191,36,0.34)] bg-[rgba(251,191,36,0.14)] text-[var(--phi-yellow)]"
+  emergency: "border-[rgba(244,63,94,0.34)] bg-[rgba(244,63,94,0.14)] text-[var(--phi-red)]"
 }
 
 function pointForIndex(index: number, total: number, radiusX: number, radiusY: number) {
@@ -76,30 +66,8 @@ function zoneColor(zone: string) {
 
 function toneForStatus(status: CeccanoDistrict["status"]) {
   if (status === "critical") return "red"
-  if (status === "emergency") return "yellow"
+  if (status === "emergency") return "red"
   return "teal"
-}
-
-function buildAgentAnswer(prompt: string, data: CeccanoAnalysisData | null) {
-  if (!data) return "Sto caricando i dati Ceccano."
-  const critical = data.districts.filter((district) => district.status !== "normal")
-  if (prompt.toLowerCase().includes("valvole")) {
-    return [
-      "Regolo suggerisce queste azioni:",
-      "",
-      "| Distretto | Valvola | Apertura | Motivo |",
-      "|---|---:|---:|---|",
-      ...critical.map((district) => {
-        const valve = data.valves.find((item) => item.district_id === district.id)
-        return `| ${district.id} | ${valve?.valve_id ?? "-"} | ${valve?.recommended_open_pct ?? "-"}% | perdita ${district.loss_pct}% e pressione ${district.pressure_actual_bar} bar |`
-      })
-    ].join("\n")
-  }
-  if (prompt.toLowerCase().includes("pressione")) {
-    const bottlenecks = data.forecast.bottlenecks.map((item) => `${item.district_id} ${item.hour_window} rischio ${item.risk}`).join(", ")
-    return `Nelle prossime 24 ore la pressione media prevista resta sotto osservazione. Colli di bottiglia: ${bottlenecks}. Target zona: ALTO ${data.overview.targets.ALTO} bar, CENTRO ${data.overview.targets.CENTRO} bar, BASSA ${data.overview.targets.BASSA} bar, PIANO ${data.overview.targets.PIANO} bar.`
-  }
-  return "Ceccano e divisa in 15 distretti altimetrici. Le zone ALTO, CENTRO, BASSA e PIANO hanno target pressione separati, con 15 valvole giorno/notte e 15 serbatoi. I distretti critici correnti sono " + critical.map((district) => `${district.id} (${district.loss_pct}%)`).join(", ") + "."
 }
 
 export function CeccanoAnalysis() {
@@ -111,14 +79,6 @@ export function CeccanoAnalysis() {
   const [targetOpenPct, setTargetOpenPct] = useState(45)
   const [adjustment, setAdjustment] = useState<CeccanoAdjustResult | null>(null)
   const [adjusting, setAdjusting] = useState(false)
-  const [chatOpen, setChatOpen] = useState(true)
-  const [chatInput, setChatInput] = useState("")
-  const [messages, setMessages] = useState<Array<{ role: "operator" | "agent"; content: string }>>([
-    {
-      role: "agent",
-      content: "Regolo Brick attivo su Ceccano. Monitoro distretti, valvole, pressione e night mode."
-    }
-  ])
 
   useEffect(() => {
     let cancelled = false
@@ -185,24 +145,9 @@ export function CeccanoAnalysis() {
     try {
       const result = await adjustCeccanoValve(selectedValve.valve_id, targetOpenPct)
       setAdjustment(result)
-      setMessages((current) => [
-        ...current,
-        { role: "operator", content: `Applica ${selectedValve.valve_id} a ${targetOpenPct}%` },
-        { role: "agent", content: result.rationale }
-      ])
     } finally {
       setAdjusting(false)
     }
-  }
-
-  function sendPrompt(prompt = chatInput.trim()) {
-    if (!prompt) return
-    setMessages((current) => [
-      ...current,
-      { role: "operator", content: prompt },
-      { role: "agent", content: buildAgentAnswer(prompt, data) }
-    ])
-    setChatInput("")
   }
 
   if (loading || !data) {
@@ -235,7 +180,7 @@ export function CeccanoAnalysis() {
           <Metric label="critical" value={String(data.overview.status.critical)} tone="red" />
           <Metric label="avg loss" value={`${data.overview.status.avg_loss_pct}%`} tone="yellow" />
           <Metric label="avg bar" value={`${data.overview.status.avg_pressure_bar}`} tone="cyan" />
-          <Metric label="db load" value={`${data.overview.status.db_load_pct}%`} tone="neutral" />
+          <Metric label="valves" value={String(data.valves.length)} tone="neutral" />
         </div>
       </header>
 
@@ -376,11 +321,11 @@ export function CeccanoAnalysis() {
             </div>
           </GlassCard>
 
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="grid gap-4 lg:grid-cols-2">
             <GlassCard className="rounded-[1.2rem] p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="text-data text-[var(--text-lo)]">Regolo AI</div>
+                  <div className="text-data text-[var(--text-lo)]">Operational summary</div>
                   <div className="mt-1 text-sm text-[var(--text-hi)]">{data.overview.ai_summary}</div>
                 </div>
                 <Bot className="h-5 w-5 shrink-0 text-[var(--acea-cyan)]" />
@@ -391,13 +336,6 @@ export function CeccanoAnalysis() {
               <div className="mt-2 flex items-center gap-2 text-sm text-[var(--text-hi)]">
                 <Moon className="h-4 w-4 text-[var(--acea-cyan)]" />
                 22:00-06:00, target 2.0 bar, flow 300 m3/h
-              </div>
-            </GlassCard>
-            <GlassCard className="rounded-[1.2rem] p-4">
-              <div className="text-data text-[var(--text-lo)]">Saturazione DB</div>
-              <div className="mt-2 flex items-center gap-2 text-sm text-[var(--text-hi)]">
-                <Database className="h-4 w-4 text-[var(--phi-yellow)]" />
-                {data.overview.status.db_load_pct}% su soglia 80%
               </div>
             </GlassCard>
           </div>
@@ -431,7 +369,7 @@ export function CeccanoAnalysis() {
           <GlassCard className="rounded-[1.6rem] p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-data text-[var(--text-lo)]">Valve control</div>
+                <div className="text-data text-[var(--text-lo)]">Valve impact estimate</div>
                 <div className="mt-1 text-lg font-semibold text-[var(--text-hi)]">{selectedValve.valve_id}</div>
               </div>
               <DataBadge label="mode" value={selectedValve.type} tone={selectedValve.type === "day" ? "yellow" : "cyan"} />
@@ -457,90 +395,15 @@ export function CeccanoAnalysis() {
             </label>
             <Button className="mt-4 w-full" onClick={applyAdjustment} disabled={adjusting}>
               <SlidersHorizontal className="h-4 w-4" />
-              {adjusting ? "Applying" : "Apply valve adjustment"}
+              {adjusting ? "Estimating impact" : "Estimate valve adjustment impact"}
             </Button>
             {adjustment ? (
               <div className="mt-3 rounded-lg border border-[rgba(68,215,192,0.26)] bg-[rgba(68,215,192,0.1)] p-3 text-sm leading-6 text-[var(--text-md)]">
-                Pressione stimata {adjustment.expected_pressure_bar} bar, flusso {adjustment.expected_flow_m3h} m3/h.
+                Dopo l'aggiustamento: pressione stimata {adjustment.expected_pressure_bar} bar, flusso {adjustment.expected_flow_m3h} m3/h.
               </div>
             ) : null}
           </GlassCard>
         ) : null}
-
-          <GlassCard className="rounded-[1.6rem] p-0">
-            <div className="flex items-center justify-between border-b border-[rgba(78,111,145,0.14)] px-4 py-3">
-              <div className="flex items-center gap-3">
-                <div className="grid h-10 w-10 place-items-center rounded-lg border border-[rgba(47,185,232,0.28)] bg-[rgba(47,185,232,0.12)]">
-                  <Bot className="h-5 w-5 text-[var(--acea-cyan)]" />
-                </div>
-                <div>
-                  <div className="text-sm font-semibold text-[var(--text-hi)]">Regolo Brick</div>
-                  <div className="text-data text-[var(--text-lo)]">Ceccano Water Network Analyst</div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setChatOpen((current) => !current)}
-                className="grid h-9 w-9 place-items-center rounded-lg border border-[rgba(78,111,145,0.18)] text-[var(--text-md)]"
-                aria-label={chatOpen ? "Close Brick chat" : "Open Brick chat"}
-              >
-                {chatOpen ? <X className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
-              </button>
-            </div>
-            {chatOpen ? (
-              <>
-                <div className="app-scroll h-[360px] space-y-3 overflow-y-auto p-4">
-                  {messages.map((message, index) => (
-                    <div key={`${message.role}-${index}`} className={cn("flex", message.role === "operator" ? "justify-end" : "justify-start")}>
-                      <div
-                        className={cn(
-                          "max-w-[86%] rounded-lg border px-3 py-2 text-sm leading-6",
-                          message.role === "operator"
-                            ? "border-[rgba(47,185,232,0.3)] bg-[rgba(47,185,232,0.12)] text-[var(--text-hi)]"
-                            : "border-[rgba(78,111,145,0.16)] bg-white text-[var(--text-md)]"
-                        )}
-                      >
-                        {message.content}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="border-t border-[rgba(78,111,145,0.14)] p-4">
-                  <div className="mb-3 grid gap-2">
-                    {agentPrompts.map((prompt) => (
-                      <button
-                        key={prompt}
-                        type="button"
-                        onClick={() => sendPrompt(prompt)}
-                        className="rounded-lg border border-[rgba(78,111,145,0.16)] bg-white px-3 py-2 text-left text-xs text-[var(--text-md)] transition hover:border-[rgba(47,185,232,0.3)] hover:text-[var(--text-hi)]"
-                      >
-                        {prompt}
-                      </button>
-                    ))}
-                  </div>
-                  <form
-                    className="flex gap-2"
-                    onSubmit={(event) => {
-                      event.preventDefault()
-                      sendPrompt()
-                    }}
-                  >
-                    <input
-                      value={chatInput}
-                      onChange={(event) => setChatInput(event.target.value)}
-                      className="min-w-0 flex-1 rounded-lg border border-[var(--glass-stroke)] bg-[rgba(255,255,255,0.92)] px-3 py-2 text-sm text-[var(--text-hi)] outline-none"
-                      placeholder="Chiedi a Regolo"
-                    />
-                    <Button type="submit" size="icon" disabled={!chatInput.trim()}>
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  </form>
-                </div>
-              </>
-            ) : (
-              <div className="p-4 text-sm text-[var(--text-md)]">Brick chiuso. Riaprilo dal bottone sopra.</div>
-            )}
-          </GlassCard>
         </aside>
       </div>
 
