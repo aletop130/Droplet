@@ -257,9 +257,9 @@ def seed_tank_balance(cur, tanks):
         capacity = capacity_m3 or 1200.0
         for offset in range(10):
             day = today - timedelta(days=offset)
-            inflow = round(capacity * (0.48 + RNG.random() * 0.08), 2)
-            outflow = round(capacity * (0.44 + RNG.random() * 0.08), 2)
-            demand = round(capacity * (0.38 + RNG.random() * 0.06), 2)
+            inflow = round(capacity * (0.30 + RNG.random() * 0.08), 2)
+            outflow = round(capacity * (0.42 + RNG.random() * 0.09), 2)
+            demand = round(capacity * (0.36 + RNG.random() * 0.08), 2)
             delta = round(inflow - outflow, 2)
             residual = round(inflow - outflow - demand + RNG.uniform(-12, 12), 2)
             rows.append(

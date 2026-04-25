@@ -18,13 +18,17 @@ import { ExplainStream } from "@/components/explain/ExplainStream"
 import { DataBadge } from "@/components/ui/DataBadge"
 import { Gauge } from "@/components/ui/Gauge"
 import { GlassCard } from "@/components/ui/GlassCard"
-import { getControlRecs, getTank } from "@/lib/api"
+import { useDataStore } from "@/store/dataStore"
 import { useSelectionStore } from "@/store/selectionStore"
 import type { ControlRecommendation, TankDetail } from "@/types/domain"
 
 export default function TankDetailPage() {
   const params = useParams<{ id: string }>()
   const id = Number(params.id)
+  const cachedDetail = useDataStore((state) => state.tankDetailsById[id])
+  const controlRecs = useDataStore((state) => state.controlRecs)
+  const fetchTankDetail = useDataStore((state) => state.fetchTankDetail)
+  const fetchControlRecs = useDataStore((state) => state.fetchControlRecs)
   const [detail, setDetail] = useState<TankDetail | null>(null)
   const [recs, setRecs] = useState<ControlRecommendation[]>([])
   const [openExplain, setOpenExplain] = useState(false)
@@ -33,9 +37,18 @@ export default function TankDetailPage() {
   useEffect(() => {
     if (!Number.isFinite(id)) return
     setActiveTank(id)
-    getTank(id).then(setDetail)
-    getControlRecs().then((items) => setRecs(items.filter((item) => item.entity_type === "tank" && item.entity_id === id)))
-  }, [id, setActiveTank])
+    if (cachedDetail) {
+      setDetail(cachedDetail)
+    } else {
+      void fetchTankDetail(id).then(setDetail)
+    }
+    void fetchControlRecs()
+  }, [cachedDetail, fetchControlRecs, fetchTankDetail, id, setActiveTank])
+
+  useEffect(() => {
+    if (!controlRecs) return
+    setRecs(controlRecs.filter((item) => item.entity_type === "tank" && item.entity_id === id))
+  }, [controlRecs, id])
 
   if (!detail) {
     return <div className="px-4 py-24 text-sm text-[var(--text-lo)]">Loading tank detail...</div>
@@ -143,7 +156,7 @@ export default function TankDetailPage() {
           </div>
         </GlassCard>
 
-        <ControlRecCard recommendations={recs} onUpdate={() => getControlRecs().then((items) => setRecs(items.filter((item) => item.entity_id === id)))} />
+        <ControlRecCard recommendations={recs} onUpdate={() => fetchControlRecs({ force: true }).then((items) => setRecs(items.filter((item) => item.entity_id === id)))} />
       </section>
 
       <GlassCard className="rounded-[1.8rem] p-5">

@@ -18,12 +18,18 @@ import { DataBadge } from "@/components/ui/DataBadge"
 import { Gauge } from "@/components/ui/Gauge"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { PhiPill } from "@/components/ui/PhiPill"
-import { getDailyDigest, getIncidents, getSegments, getSourceAvailability, getTanks } from "@/lib/api"
+import { getDailyDigest } from "@/lib/api"
+import { useDataStore } from "@/store/dataStore"
 import type { Incident, SourceAvailability, TankFeature } from "@/types/domain"
 
 const phiPalette = ["#10B981", "#FBBF24", "#FB923C", "#F43F5E"]
 
 export default function MissionControlPage() {
+  const segments = useDataStore((state) => state.segments)
+  const incidentsData = useDataStore((state) => state.incidents)
+  const tanksData = useDataStore((state) => state.tanks)
+  const availabilityData = useDataStore((state) => state.sourceAvailability)
+  const fetchCore = useDataStore((state) => state.fetchCore)
   const [segmentsCount, setSegmentsCount] = useState([0, 0, 0, 0])
   const [sparkline, setSparkline] = useState<Array<{ ts: string; phi: number }>>([])
   const [incidents, setIncidents] = useState<Incident[]>([])
@@ -32,30 +38,27 @@ export default function MissionControlPage() {
   const [digest, setDigest] = useState<Awaited<ReturnType<typeof getDailyDigest>> | null>(null)
 
   useEffect(() => {
-    Promise.all([
-      getSegments(),
-      getIncidents({ status: "open" }),
-      getTanks(),
-      getSourceAvailability(),
-      getDailyDigest().catch(() => null)
-    ]).then(([segments, incidentPayload, tankCollection, sourceAvailability, digestPayload]) => {
-      const counts = [0, 0, 0, 0]
-      segments.features.forEach((feature) => {
-        counts[feature.properties.phi] += 1
-      })
-      setSegmentsCount(counts)
+    void fetchCore()
+    getDailyDigest().catch(() => null).then(setDigest)
+  }, [fetchCore])
 
-      const sampled = segments.features.slice(0, 28).map((feature, index) => ({
-        ts: `${index + 1}`,
-        phi: feature.properties.phi + (feature.properties.phi_confidence ?? 0.6)
-      }))
-      setSparkline(sampled)
-      setIncidents(incidentPayload.items.slice(0, 5))
-      setTanks(tankCollection.features)
-      setAvailability(sourceAvailability)
-      setDigest(digestPayload)
+  useEffect(() => {
+    if (!segments || !incidentsData || !tanksData || !availabilityData) return
+    const counts = [0, 0, 0, 0]
+    segments.forEach((feature) => {
+        counts[feature.properties.phi] += 1
     })
-  }, [])
+    setSegmentsCount(counts)
+
+    const sampled = segments.slice(0, 28).map((feature, index) => ({
+      ts: `${index + 1}`,
+      phi: feature.properties.phi + (feature.properties.phi_confidence ?? 0.6)
+    }))
+    setSparkline(sampled)
+    setIncidents(incidentsData.filter((incident) => incident.status === "open").slice(0, 5))
+    setTanks(tanksData)
+    setAvailability(availabilityData)
+  }, [availabilityData, incidentsData, segments, tanksData])
 
   const donutData = useMemo(
     () =>
@@ -82,7 +85,6 @@ export default function MissionControlPage() {
       <section className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="text-data text-[var(--acea-cyan)]">Mission Control</div>
-          <h1 className="text-h1 mt-2 max-w-4xl">Ciociaria live network posture and explainable operational drift.</h1>
         </div>
         <div className="flex flex-wrap gap-2">
           <DataBadge label="backend" value="HF green" />
@@ -95,7 +97,7 @@ export default function MissionControlPage() {
           <div className="mb-3 flex items-center justify-between">
             <div>
               <div className="text-sm text-[var(--text-hi)]">Network Health</div>
-              <div className="text-sm text-[var(--text-md)]">Distribuzione PHI + delta recente</div>
+              <div className="text-sm text-[var(--text-md)]">PHI distribution + recent delta</div>
             </div>
             <DataBadge label="segments" value={String(segmentsCount.reduce((sum, value) => sum + value, 0))} />
           </div>
@@ -126,7 +128,7 @@ export default function MissionControlPage() {
         </GlassCard>
 
         <GlassCard className="rounded-[1.8rem] p-5">
-          <div className="text-sm text-[var(--text-hi)]">Incidenti Attivi</div>
+          <div className="text-sm text-[var(--text-hi)]">Active Incidents</div>
           <div className="mt-4 grid gap-3">
             {incidents.map((incident) => (
               <Link key={incident.id} href="/app/incidents" className="rounded-2xl border border-[rgba(173,218,255,0.1)] bg-[rgba(255,255,255,0.03)] p-3">
@@ -156,7 +158,7 @@ export default function MissionControlPage() {
         </GlassCard>
 
         <GlassCard className="rounded-[1.8rem] p-5">
-          <div className="text-sm text-[var(--text-hi)]">Disponibilità Idrica</div>
+          <div className="text-sm text-[var(--text-hi)]">Water Availability</div>
           <div className="mt-4 text-[2rem] font-semibold text-[var(--acea-ice)]">
             {availability?.grace_anomaly?.value_mm_eq_water ?? -12} mm
           </div>
@@ -180,19 +182,19 @@ export default function MissionControlPage() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="text-sm text-[var(--text-hi)]">Daily Digest</div>
-            <div className="mt-1 text-sm text-[var(--text-md)]">Sintesi agente tracciata e verificabile.</div>
+            <div className="mt-1 text-sm text-[var(--text-md)]">Traceable and verifiable agent summary.</div>
           </div>
           <DataBadge label="today" value={digest?.day ?? "stub"} tone="neutral" />
         </div>
         <div className="mt-4 grid gap-4 lg:grid-cols-[1.4fr_0.8fr]">
           <div className="rounded-[1.6rem] border border-[rgba(173,218,255,0.1)] bg-[rgba(255,255,255,0.03)] p-4 text-body">
             {digest?.trend_summary ??
-              "Il twin operativo mantiene stabilità globale, con cluster da osservare nel corridoio Cassino e nei serbatoi con segnale di mass-balance instabile."}
+              "The operational twin remains globally stable, with clusters to watch in the Cassino corridor and tanks showing unstable mass-balance signals."}
           </div>
           <div className="grid gap-2">
             {(digest?.intervention_recs ?? [
-              { id: 1, text: "Verificare pressione e domanda notturna nel corridoio Cassino Axis." },
-              { id: 2, text: "Monitorare i serbatoi con residuale mass-balance anomalo." }
+              { id: 1, text: "Check pressure and nighttime demand in the Cassino Axis corridor." },
+              { id: 2, text: "Monitor tanks with anomalous mass-balance residuals." }
             ]).map((item) => (
               <div key={item.id} className="rounded-[1.4rem] border border-[rgba(173,218,255,0.1)] bg-[rgba(255,255,255,0.03)] p-3 text-sm text-[var(--text-md)]">
                 {item.text}

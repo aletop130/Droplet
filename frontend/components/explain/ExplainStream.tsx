@@ -45,7 +45,7 @@ export function ExplainStream({ entityType, entityId, open, onClose }: ExplainSt
           }
         }
       } catch {
-        if (!cancelled) setError("Connessione explain non disponibile.")
+        if (!cancelled) setError("Explain connection unavailable.")
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -68,7 +68,7 @@ export function ExplainStream({ entityType, entityId, open, onClose }: ExplainSt
           animate={{ x: 0 }}
           exit={{ x: 560 }}
           transition={{ type: "spring", stiffness: 260, damping: 28 }}
-          className="fixed inset-y-0 right-0 z-[60] w-full max-w-[520px] border-l border-[rgba(173,218,255,0.12)] bg-[rgba(4,10,20,0.94)] backdrop-blur-[24px]"
+          className="fixed inset-y-0 right-0 z-[60] w-full max-w-[520px] border-l border-[var(--glass-stroke)] bg-[rgba(255,255,255,0.94)] backdrop-blur-[24px]"
         >
           <div className="flex h-full flex-col">
             <div className="flex h-16 items-center justify-between border-b border-[rgba(173,218,255,0.1)] px-4">

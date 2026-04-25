@@ -1,18 +1,163 @@
 # Droplet
 
-Water-network intelligence platform for mid-size Italian utilities. Built for the 11th CASSINI Hackathon (EU Space for Water). Pilot territory: Ciociaria (Frosinone, Lazio).
+Water-network intelligence platform for Italian mid-size utilities. Built for the **CASSINI Hackathon #11 (EU Space for Water)**. Pilot territory: **Ciociaria (Frosinone, Lazio)** — Italy's worst province for Non-Revenue Water (69.5% ISTAT 2020).
 
-Two modules, one backend:
-- **Module 1 — Source**: availability modelling + scarcity forecast.
-- **Module 2 — Distribution**: pipe-level PHI (Pipe Health Index) fusing EGMS subsidence, Sentinel-2 NDVI corridor anomalies, ECOSTRESS thermal anomalies and live hydraulic telemetry; AI-assisted, EU AI Act Art. 13-compliant explanations.
+## Mission
 
-EU-only stack: Copernicus · Galileo · Regolo AI · Supabase · Qdrant · Neo4j AuraDB · Hugging Face Spaces · Vercel.
+Droplet fuses **Copernicus** Earth observation (ERA5, Sentinel-2/3, ECOSTRESS, EGMS, GRACE-FO), **Galileo HAS** timing, **EPANET 2.2** hydraulics, and a **Regolo AI agent** to produce:
 
-See [`plan.md`](./plan.md) for the full architecture, data sources, ENV keys, and deployment sequence.
+- **Pipe Health Index (PHI)** — 5-signal health score (0–3) per pipe segment
+- **IWA Water Balance** — Real/Apparent losses per DMA
+- **TDOA Burst Localiser** — Leak triangulation with simulated Galileo HAS
+- **Tank Telecontrol** — Live telemetry + anomaly detection (L1/L2/L3)
+- **AI Explanations** — EU AI Act Art. 13 compliant, human-in-the-loop
 
-## Layout
+## Tech Stack
+
+| Layer | Technology | Hosting |
+|-------|------------|--------|
+| Frontend | Next.js 15, React 19, Tailwind CSS v4, shadcn/ui | Vercel |
+| Backend | Python 3.11, FastAPI 0.115 | Hugging Face Spaces |
+| Database | Postgres 17 + PostGIS + pgvector | Supabase (eu-central-1) |
+| VectorDB | Qdrant Cloud | europe-west3 |
+| GraphDB | Neo4j AuraDB | Aura |
+| Hydraulics | EPANET 2.2 via wntr | in-process |
+| AI | Regolo AI (gpt-oss-120b, Qwen3.6-27B, Qwen3-Embed-8B) | Seeweb (IT) |
+
+## Data Sources (13)
+
+- **ERA5** — Weather confounder + scarcity signal
+- **Sentinel-2** — NDVI/NDWI corridor anomalies
+- **Sentinel-3** — LST thermal leak detection
+- **ECOSTRESS** — 70m thermal leak signal
+- **EGMS** — Differential subsidence per segment
+- **GRACE-FO** — Regional aquifer mass
+- **JRC GSW** — Surface water seasonality
+- **Galileo HAS** — Sub-µs timing (simulated)
+- **ISPRA** — Historical intake volumes
+- **ISTAT** — NRW baseline, pipe attributes
+- **ARERA** — Regulatory corpus (RQTI, TICSI)
+- **OSMnx** — Pipe topology proxy
+- **EPANET** — Live hydraulic simulation
+
+## Architecture
+
 ```
-backend/       FastAPI app → Hugging Face Spaces
-frontend/      Next.js app → Vercel            (pending)
-ingestion/     GitHub Actions runners          (pending)
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│   Vercel     │───▶│ HF Spaces   │───▶│  Supabase   │
+│  Next.js    │◀───│  FastAPI    │◀───│  Postgres   │
+└──────────────┘    └──────────────┘    └──────────────┘
+                           │                    │
+                           ▼                    ▼
+                    ┌──────────────┐    ┌──────────────┐
+                    │  Regolo AI   │    │   Qdrant    │
+                    │  (EU sober)  │    │   VectorDB  │
+                    └──────────────┘    └──────────────┘
+                           │
+                           ▼
+                    ┌──────────────┐
+                    │   Neo4j      │
+                    │   AuraDB     │
+                    └──────────────┘
 ```
+
+## Key Differentiators
+
+### 1. Worst-First Territory
+- **NRW 69.5%** in Frosinone vs 42% national average (ISTAT Censimento Acque 2020)
+- Italy's worst province for water losses — strategic choice, not compromise
+- Karst-dominated source mix (74% springs) ideal for satellite leak signals
+
+### 2. 100% European Stack — Sovereign AI
+- **Regolo AI** (Seeweb, Frosinone): Italian sovereign LLM, no data leaves EU
+- All inference runs in Italy — compliant with EU AI Act, GDPR, NIS2
+- Every byte stays in Europe; verifiable for each component
+
+### 3. EU AI Act Compliance by Design
+- **Art. 13**: Full audit trail with feature-contribution vectors
+- **Human-in-the-loop**: Operator must approve every recommendation
+- Audit log includes: prompt, tool calls, doc IDs, graph path, confidence, operator action
+
+### 4. Multi-Signal Pipe Health Index (PHI)
+Fuses 5 signals per segment:
+1. **EGMS** — Differential subsidence (100m, annual)
+2. **Sentinel-2 NDVI** — Corridor vegetation stress (10m, 5-day)
+3. **ECOSTRESS** — Thermal anomaly (70m, 1-3 day)
+4. **Hydraulic MNF** — Minimum night flow anomaly (live)
+5. **Tank signal** — Upstream/downstream tank anomalies
+Weighted ensemble → PHI ∈ {0=green, 1=yellow, 2=orange, 3=red}
+
+### 5. TDOA Burst Localisation with Galileo HAS
+- Sub-µs timing accuracy via Galileo High Accuracy Service
+- Least-squares solver on pressure wave arrival → **±4-10m precision**
+- Differentiating vs US GPS-based alternatives
+
+### 6. Digital Twin — EPANET 2.2 Live
+- `wntr` wraps EPANET 2.2 with 5-second simulation tick
+- Synthetic network from OSMnx + ISTAT priors (materials, diameters, install year)
+- Live telemetry pushes via WebSocket during demo
+
+### 7. GraphRAG + Semantic Routing
+- **brick-v1-beta** routes 60-70% of queries (<200ms) to direct paths
+- **gpt-oss-120b** with Neo4j graph walk + Qdrant hybrid search
+- Two-stage retrieval: dense → sparse BM25 → reranker → top-5
+
+### 8. IWA Water Balance
+- Monthly ILI (Infrastructure Leakage Index), UARL, CARL
+- PDF report auto-generated by **Qwen3.6-27B**
+
+### 9. Scalability by Design
+- ALL connectors are **manifest-driven** (YAML per source)
+- Bbox-driven pipeline: change `PILOT_BBOX_*` → new pilot territory
+- Free-tier headroom: Supabase 80%, Qdrant 20%, Neo4j <10%
+
+### 10. Real Ground Truth
+- ISTAT Censimento Acque 2020 parsed (NRW per comune)
+- ARERA RQTI delibers for KPI calibration
+- EGMS 2024 real subsidence data for Ciociaria
+
+### Module 1 — Source
+- Water availability view (karst springs / wells / surface)
+- GRACE-FO aquifer anomaly
+- ERA5-driven scarcity signal
+- 30/60/90-day forecast placeholder
+
+### Module 2 — Distribution
+- **Pipe Health Index** — EGMS + NDVI + LST + hydraulic + tank signals
+- **TDOA Burst Localiser** — Simulated Galileo HAS timing
+- **IWA Water Balance** — Per DMA
+- **Live Operational Map** — deck.gl + MapLibre
+
+### Module 3 — Tank Telecontrol
+- Synthetic fill from UNI 9182
+- Live level/flow/pump telemetry (30s tick)
+- L1 mass-balance + L2 z-score + L3 IsolationForest
+
+### AI Agent
+- GraphRAG tool loop via Neo4j
+- Qdrant hybrid search + reranker
+- Vision annotation (satellite chips)
+- Control recommendations (operator-approved)
+
+## Deployment
+
+All runtime is **cloud-only** (no local Docker in production):
+
+| Component | URL |
+|-----------|-----|
+| Frontend | https://droplet.vercel.app |
+| Backend | https://Alessandro0709-Droplet.hf.space |
+| DB Pooler | postgresql://postgres.{project}.pooler.supabase.com |
+
+See [`plan.md`](./plan.md) for full ENV keys, schema SQL, and deployment sequence.
+
+## What Droplet Is NOT
+
+- Not a crystal ball — we provide **prioritisation**, not 100% burst prediction
+- Not SCADA replacement — we **integrate** with existing telemetry
+- Not real utility data — network is synthetic, calibrated on real ISTAT priors
+- Not financial planning — investment LP optimizer is explicitly out of scope
+
+## License
+
+MIT

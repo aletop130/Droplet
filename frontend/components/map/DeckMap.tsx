@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { GeoJsonLayer, ScatterplotLayer } from "@deck.gl/layers"
 import DeckGL from "@deck.gl/react"
 import { AnimatePresence, motion } from "framer-motion"
-import { Radio, X } from "lucide-react"
+import { ChevronDown, Radio, X } from "lucide-react"
 import { Map, type MapRef } from "react-map-gl/maplibre"
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
 
@@ -12,13 +12,11 @@ import { LayerToggles, type MapLayerKey } from "@/components/map/LayerToggles"
 import { DataBadge } from "@/components/ui/DataBadge"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { PhiPill } from "@/components/ui/PhiPill"
-import { getDMAs, getIncidents, getSegment, getSegments, getSourceAvailability, getTank, getTanks } from "@/lib/api"
 import { phiColor } from "@/lib/phi"
 import { useAlertsStore } from "@/store/alertsStore"
+import { useDataStore } from "@/store/dataStore"
 import { useSelectionStore } from "@/store/selectionStore"
 import type { DMAFeature, Incident, SegmentDetail, SegmentFeature, SourceNode, TankDetail, TankFeature } from "@/types/domain"
-
-const ciociariaBbox = "13.2,41.4,13.8,41.9"
 
 const initialViewState = {
   longitude: 13.53,
@@ -70,11 +68,16 @@ export function DeckMap() {
   const mapRef = useRef<MapRef | null>(null)
   const [enabled, setEnabled] = useState<Record<MapLayerKey, boolean>>(defaultLayers)
   const [viewState, setViewState] = useState(initialViewState)
-  const [segments, setSegments] = useState<SegmentFeature[]>([])
-  const [tanks, setTanks] = useState<TankFeature[]>([])
-  const [dmas, setDmas] = useState<DMAFeature[]>([])
-  const [incidents, setIncidents] = useState<Incident[]>([])
-  const [sources, setSources] = useState<SourceNode[]>([])
+  const segments = useDataStore((state) => state.segments) ?? ([] as SegmentFeature[])
+  const tanks = useDataStore((state) => state.tanks) ?? ([] as TankFeature[])
+  const dmas = useDataStore((state) => state.dmas) ?? ([] as DMAFeature[])
+  const incidents = useDataStore((state) => state.incidents)?.slice(0, 80) ?? ([] as Incident[])
+  const sources = useDataStore((state) => state.sources) ?? ([] as SourceNode[])
+  const segmentDetailsById = useDataStore((state) => state.segmentDetailsById)
+  const tankDetailsById = useDataStore((state) => state.tankDetailsById)
+  const fetchCore = useDataStore((state) => state.fetchCore)
+  const fetchSegmentDetail = useDataStore((state) => state.fetchSegmentDetail)
+  const fetchTankDetail = useDataStore((state) => state.fetchTankDetail)
   const [activeSegmentDetail, setActiveSegmentDetail] = useState<SegmentDetail | null>(null)
   const [activeTankDetail, setActiveTankDetail] = useState<TankDetail | null>(null)
   const [drawerWidth, setDrawerWidth] = useState(480)
@@ -95,57 +98,52 @@ export function DeckMap() {
   const lastEvent = useAlertsStore((state) => state.events[0] ?? null)
 
   useEffect(() => {
-    let cancelled = false
-
-    Promise.allSettled([
-      getSegments(ciociariaBbox),
-      getTanks(),
-      getDMAs(),
-      getIncidents(),
-      getSourceAvailability()
-    ]).then(([segmentCollection, tankCollection, dmaList, incidentList, availability]) => {
-      if (cancelled) return
-      if (segmentCollection.status === "fulfilled") setSegments(segmentCollection.value.features)
-      if (tankCollection.status === "fulfilled") setTanks(tankCollection.value.features)
-      if (dmaList.status === "fulfilled") setDmas(dmaList.value)
-      if (incidentList.status === "fulfilled") setIncidents(incidentList.value.items.slice(0, 80))
-      if (availability.status === "fulfilled") setSources(availability.value.sources)
-    })
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
+    void fetchCore()
+  }, [fetchCore])
 
   useEffect(() => {
     if (!activeSegment) {
       setActiveSegmentDetail(null)
       return
     }
-    const controller = new AbortController()
-    getSegment(activeSegment, { signal: controller.signal })
-      .then(setActiveSegmentDetail)
-      .catch((error) => {
-        if (error instanceof Error && error.name === "AbortError") return
-        setActiveSegmentDetail(null)
+    if (segmentDetailsById[activeSegment]) {
+      setActiveSegmentDetail(segmentDetailsById[activeSegment])
+      return
+    }
+    let cancelled = false
+    void fetchSegmentDetail(activeSegment)
+      .then((detail) => {
+        if (!cancelled) setActiveSegmentDetail(detail)
       })
-    return () => controller.abort()
-  }, [activeSegment])
+      .catch(() => {
+        if (!cancelled) setActiveSegmentDetail(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [activeSegment, fetchSegmentDetail, segmentDetailsById])
 
   useEffect(() => {
     if (!activeTank) {
       setActiveTankDetail(null)
       return
     }
-    const controller = new AbortController()
-    getTank(activeTank, { signal: controller.signal })
-      .then(setActiveTankDetail)
-      .catch((error) => {
-        if (error instanceof Error && error.name === "AbortError") return
-        setActiveTankDetail(null)
+    if (tankDetailsById[activeTank]) {
+      setActiveTankDetail(tankDetailsById[activeTank])
+      return
+    }
+    let cancelled = false
+    void fetchTankDetail(activeTank)
+      .then((detail) => {
+        if (!cancelled) setActiveTankDetail(detail)
       })
-    return () => controller.abort()
-  }, [activeTank])
+      .catch(() => {
+        if (!cancelled) setActiveTankDetail(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [activeTank, fetchTankDetail, tankDetailsById])
 
   useEffect(() => {
     function onMove(event: MouseEvent) {
@@ -374,52 +372,42 @@ export function DeckMap() {
         onViewStateChange={({ viewState: nextViewState }) => setViewState(nextViewState as typeof initialViewState)}
         layers={layers}
       >
-        <Map ref={mapRef} mapStyle="https://tiles.openfreemap.org/styles/dark" />
+        <Map ref={mapRef} mapStyle="https://tiles.openfreemap.org/styles/liberty" />
       </DeckGL>
 
       <div className="pointer-events-none fixed inset-x-0 top-20 z-20 flex justify-center px-4">
-        <GlassCard className="pointer-events-auto w-full max-w-4xl rounded-[1.6rem] px-4 py-3">
+        <GlassCard className="pointer-events-auto w-full max-w-5xl rounded-[1.8rem] px-4 py-3">
           <div className="flex flex-wrap items-center gap-3">
-            <select
-              value={dmaFilter}
-              onChange={(event) => setDmaFilter(event.target.value)}
-              className="rounded-2xl border border-[rgba(173,218,255,0.12)] bg-[rgba(4,10,20,0.66)] px-3 py-2 text-sm text-[var(--text-hi)]"
-            >
-              <option value="all">All DMAs</option>
+            <div className="min-w-[160px] flex-1">
+              <div className="text-data text-[var(--acea-cyan)]">Map filters</div>
+              <div className="mt-1 text-sm text-[var(--text-md)]">Sharper controls with labels people can actually read.</div>
+            </div>
+            <div className="grid flex-[2] gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <FilterSelect label="Service area" value={dmaFilter} onChange={setDmaFilter}>
+              <option value="all">All service areas</option>
               {dmas.map((dma) => (
                 <option key={dma.id} value={dma.id}>
                   {dma.name}
                 </option>
               ))}
-            </select>
-            <select
-              value={severityFilter}
-              onChange={(event) => setSeverityFilter(event.target.value)}
-              className="rounded-2xl border border-[rgba(173,218,255,0.12)] bg-[rgba(4,10,20,0.66)] px-3 py-2 text-sm text-[var(--text-hi)]"
-            >
-              <option value="all">Severity</option>
+            </FilterSelect>
+            <FilterSelect label="Severity" value={severityFilter} onChange={setSeverityFilter}>
+              <option value="all">Any severity</option>
               <option value="1">≥ 1</option>
               <option value="2">≥ 2</option>
               <option value="3">≥ 3</option>
-            </select>
-            <select
-              value={dateRange}
-              onChange={(event) => setDateRange(event.target.value)}
-              className="rounded-2xl border border-[rgba(173,218,255,0.12)] bg-[rgba(4,10,20,0.66)] px-3 py-2 text-sm text-[var(--text-hi)]"
-            >
+            </FilterSelect>
+            <FilterSelect label="Window" value={dateRange} onChange={setDateRange}>
               <option value="24h">24h</option>
               <option value="7d">7d</option>
               <option value="30d">30d</option>
               <option value="90d">90d</option>
-            </select>
-            <select
-              value={metric}
-              onChange={(event) => setMetric(event.target.value as "phi" | "headroom")}
-              className="rounded-2xl border border-[rgba(173,218,255,0.12)] bg-[rgba(4,10,20,0.66)] px-3 py-2 text-sm text-[var(--text-hi)]"
-            >
+            </FilterSelect>
+            <FilterSelect label="Metric" value={metric} onChange={(value) => setMetric(value as "phi" | "headroom")}>
               <option value="phi">PHI</option>
               <option value="headroom">Headroom</option>
-            </select>
+            </FilterSelect>
+            </div>
           </div>
         </GlassCard>
       </div>
@@ -467,7 +455,7 @@ export function DeckMap() {
             exit={{ x: drawerWidth + 40 }}
             transition={{ type: "spring", stiffness: 260, damping: 28 }}
             style={{ width: drawerWidth }}
-            className="fixed inset-y-0 right-0 z-30 min-w-0 border-l border-[rgba(173,218,255,0.12)] bg-[rgba(4,10,20,0.92)] pt-20 backdrop-blur-[24px]"
+            className="fixed inset-y-0 right-0 z-30 min-w-0 border-l border-[var(--glass-stroke)] bg-[rgba(255,255,255,0.92)] pt-20 backdrop-blur-[24px]"
           >
             <button
               type="button"
@@ -477,7 +465,7 @@ export function DeckMap() {
             <div className="app-scroll h-full overflow-y-auto px-5 pb-6">
               <div className="mb-4 flex items-center justify-between">
                 <div className="text-h2 text-[var(--text-hi)]">
-                  {activeSegmentDetail ? "Segment detail" : activeTankDetail ? "Tank detail" : "DMA detail"}
+                  {activeSegmentDetail ? "Segment detail" : activeTankDetail ? "Tank detail" : "Service area detail"}
                 </div>
                 <button
                   type="button"
@@ -664,5 +652,31 @@ function TankDrawer({
         </div>
       </GlassCard>
     </div>
+  )
+}
+
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  children
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  children: React.ReactNode
+}) {
+  return (
+    <label className="relative grid gap-1.5 rounded-[1.2rem] border border-[var(--glass-stroke)] bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(239,247,255,0.86))] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+      <span className="text-data text-[var(--text-lo)]">{label}</span>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="appearance-none bg-transparent pr-8 text-sm font-medium text-[var(--text-hi)] outline-none"
+      >
+        {children}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-3 top-[2rem] h-4 w-4 text-[var(--acea-cyan)]" />
+    </label>
   )
 }

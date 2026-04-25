@@ -7,34 +7,34 @@ export default function LandingPage() {
       <section className="mx-auto grid min-h-[calc(100vh-2.5rem)] max-w-[1500px] gap-8">
         <nav className="glass-panel flex h-16 items-center justify-between rounded-[1.8rem] px-4">
           <div className="flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-2xl border border-[rgba(75,214,255,0.2)] bg-[rgba(255,255,255,0.03)]">
-              <Image src="/droplet-mark.svg" alt="Droplet" width={26} height={26} priority />
+            <div className="grid h-11 w-11 place-items-center rounded-2xl border border-[rgba(10,92,168,0.14)] bg-[rgba(255,255,255,0.62)]">
+              <Image src="/droplet-mark.svg" alt="" width={27} height={27} priority />
             </div>
             <div>
-              <div className="text-display text-sm font-semibold text-[var(--acea-ice)]">Droplet</div>
+              <Image src="/droplet-logo.svg" alt="Droplet" width={154} height={33} priority className="h-7 w-auto" />
               <div className="text-data text-[var(--text-lo)]">CASSINI Hackathon #11</div>
             </div>
           </div>
           <div className="flex gap-2">
             <Link href="/login" className="liquid-button inline-flex h-11 items-center rounded-2xl px-4 text-sm text-[var(--acea-ice)]">
-              Entra nella piattaforma
+              Enter platform
             </Link>
           </div>
         </nav>
 
         <div className="grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
           <div className="max-w-4xl py-8">
-            <div className="text-data text-[var(--acea-cyan)]">Pilot: Ciociaria, NRW 69.5 %.</div>
-            <h1 className="text-h1 mt-4">Sicurezza idrica, intelligenza satellitare, decisioni tracciabili.</h1>
+            <div className="text-data text-[var(--acea-cyan)]">Pilot: Ciociaria, NRW 69.5%.</div>
+            <h1 className="text-h1 mt-4">Water security, satellite intelligence, traceable decisions.</h1>
             <p className="text-body mt-6 max-w-2xl">
-              Droplet unisce monitoraggio satellitare, digital twin idraulico e agente auditabile per guidare le operazioni di rete con human-in-the-loop obbligatorio.
+              Droplet combines satellite monitoring, a hydraulic digital twin, and an auditable agent to guide network operations with mandatory human-in-the-loop review.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/login" className="liquid-button inline-flex h-12 items-center rounded-2xl px-5 text-sm text-[var(--acea-ice)]">
-                Entra nella piattaforma
+                Enter platform
               </Link>
               <a href="#architecture" className="glass-card inline-flex h-12 items-center rounded-2xl px-5 text-sm text-[var(--text-hi)]">
-                Vedi architettura
+                View architecture
               </a>
             </div>
             <div className="mt-8 flex flex-wrap gap-2">
@@ -55,26 +55,13 @@ export default function LandingPage() {
                 <div className="text-data text-[var(--acea-cyan)]">live</div>
               </div>
               <div className="grid place-items-center">
-                <svg viewBox="0 0 320 320" className="h-[18rem] w-[18rem]">
-                  <defs>
-                    <linearGradient id="dropStroke" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#4bd6ff" />
-                      <stop offset="100%" stopColor="#44d7c0" />
-                    </linearGradient>
-                  </defs>
-                  <path
-                    d="M160 36C133 89 84 132 84 192c0 43 34 76 76 76s76-33 76-76c0-60-49-103-76-156Z"
-                    fill="rgba(75,214,255,0.12)"
-                    stroke="url(#dropStroke)"
-                    strokeWidth="4"
-                  />
-                </svg>
+                <Image src="/droplet-mark.svg" alt="Droplet" width={240} height={240} priority className="h-[15rem] w-[15rem]" />
               </div>
               <div className="grid gap-3">
                 {[
-                  ["Rileva", "Copernicus + anomaly fusion"],
-                  ["Spiega", "Regolo AI with audit trail"],
-                  ["Traccia", "operator approval mandatory"]
+                  ["Detect", "Copernicus + anomaly fusion"],
+                  ["Explain", "Regolo AI with audit trail"],
+                  ["Trace", "operator approval mandatory"]
                 ].map(([title, desc]) => (
                   <div key={title} className="rounded-[1.4rem] border border-[rgba(173,218,255,0.12)] bg-[rgba(255,255,255,0.03)] p-4">
                     <div className="text-sm text-[var(--text-hi)]">{title}</div>

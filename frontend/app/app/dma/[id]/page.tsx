@@ -14,13 +14,19 @@ import {
 
 import { DataBadge } from "@/components/ui/DataBadge"
 import { GlassCard } from "@/components/ui/GlassCard"
-import { getDMA, getDMABalance, getSegments, getTanks } from "@/lib/api"
+import { useDataStore } from "@/store/dataStore"
 import { useSelectionStore } from "@/store/selectionStore"
 import type { DMABalance, DMAFeature, SegmentFeature, TankFeature } from "@/types/domain"
 
 export default function DmaPage() {
   const params = useParams<{ id: string }>()
   const id = Number(params.id)
+  const dmas = useDataStore((state) => state.dmas)
+  const segmentsData = useDataStore((state) => state.segments)
+  const tanksData = useDataStore((state) => state.tanks)
+  const dmaBalanceCache = useDataStore((state) => state.dmaBalancesById)
+  const fetchCore = useDataStore((state) => state.fetchCore)
+  const fetchDmaBalance = useDataStore((state) => state.fetchDmaBalance)
   const [dma, setDma] = useState<DMAFeature | null>(null)
   const [balance, setBalance] = useState<DMABalance | null>(null)
   const [segments, setSegments] = useState<SegmentFeature[]>([])
@@ -30,15 +36,33 @@ export default function DmaPage() {
   useEffect(() => {
     if (!Number.isFinite(id)) return
     setActiveDMA(id)
-    Promise.all([getDMA(id), getDMABalance(id), getSegments(undefined, id), getTanks(id)]).then(
-      ([dmaEntity, balancePayload, segmentCollection, tankCollection]) => {
-        setDma(dmaEntity)
-        setBalance(balancePayload)
-        setSegments(segmentCollection.features)
-        setTanks(tankCollection.features)
-      }
-    )
-  }, [id, setActiveDMA])
+    void fetchCore()
+    void fetchDmaBalance(id).then(setBalance)
+  }, [fetchCore, fetchDmaBalance, id, setActiveDMA])
+
+  useEffect(() => {
+    if (dmas) {
+      setDma(dmas.find((item) => item.id === id) ?? null)
+    }
+  }, [dmas, id])
+
+  useEffect(() => {
+    if (dmaBalanceCache[id]) {
+      setBalance(dmaBalanceCache[id])
+    }
+  }, [dmaBalanceCache, id])
+
+  useEffect(() => {
+    if (segmentsData) {
+      setSegments(segmentsData.filter((segment) => segment.properties.dma_id === id))
+    }
+  }, [id, segmentsData])
+
+  useEffect(() => {
+    if (tanksData) {
+      setTanks(tanksData.filter((tank) => tank.properties.dma_id === id))
+    }
+  }, [id, tanksData])
 
   const waterfall = useMemo(() => {
     if (!balance) return []
@@ -54,7 +78,7 @@ export default function DmaPage() {
     <div className="mx-auto grid max-w-[1450px] gap-5">
       <section className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="text-data text-[var(--acea-cyan)]">DMA {id}</div>
+          <div className="text-data text-[var(--acea-cyan)]">Service area {id}</div>
           <h1 className="text-h1 mt-2">{dma?.name ?? "Loading..."}</h1>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -65,7 +89,7 @@ export default function DmaPage() {
 
       <section className="grid gap-4 xl:grid-cols-[1fr_1fr]">
         <GlassCard className="rounded-[1.8rem] p-5">
-          <div className="mb-4 text-sm text-[var(--text-hi)]">IWA Water Balance</div>
+          <div className="mb-4 text-sm text-[var(--text-hi)]">Water balance</div>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={waterfall}>
@@ -80,7 +104,7 @@ export default function DmaPage() {
         </GlassCard>
 
         <GlassCard className="rounded-[1.8rem] p-5">
-          <div className="mb-4 text-sm text-[var(--text-hi)]">KPI cards</div>
+          <div className="mb-4 text-sm text-[var(--text-hi)]">Performance indicators</div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-[1.4rem] border border-[rgba(173,218,255,0.1)] bg-[rgba(255,255,255,0.03)] p-4">
               <div className="text-data text-[var(--text-lo)]">NRW%</div>

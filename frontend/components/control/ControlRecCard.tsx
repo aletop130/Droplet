@@ -32,11 +32,11 @@ export function ControlRecCard({ recommendations, onUpdate }: ControlRecCardProp
             <div className="mt-3 flex gap-2">
               <Button size="sm" onClick={() => approveControlRec(rec.id).then(onUpdate)}>
                 <Check className="h-3 w-3" />
-                Approva
+                Approve
               </Button>
               <Button variant="ghost" size="sm" onClick={() => rejectControlRec(rec.id).then(onUpdate)}>
                 <X className="h-3 w-3" />
-                Rifiuta
+                Reject
               </Button>
             </div>
           </div>
