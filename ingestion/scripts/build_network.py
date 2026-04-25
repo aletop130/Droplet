@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import math
 from pathlib import Path
+import json
+import os
 
 import geopandas as gpd
 import networkx as nx
@@ -13,6 +15,7 @@ from shapely.geometry import Polygon
 
 ROOT = Path(__file__).resolve().parents[2]
 GRAPH_PATH = ROOT / "data" / "raw" / "osm" / "frosinone_drive.graphml"
+ISTAT_PATH = ROOT / "data" / "processed" / "istat_frosinone.json"
 LOAD_DOTENV = load_dotenv(ROOT / "backend" / ".env")
 
 ALLOWED_HIGHWAYS = {
@@ -28,11 +31,71 @@ ALLOWED_HIGHWAYS = {
 }
 
 DMA_DEFS = [
-    ("DMA-1 Frosinone North-West", Polygon([(13.2, 41.65), (13.5, 41.65), (13.5, 41.9), (13.2, 41.9)]), 18200),
-    ("DMA-2 Frosinone North-East", Polygon([(13.5, 41.65), (13.8, 41.65), (13.8, 41.9), (13.5, 41.9)]), 16800),
-    ("DMA-3 Frosinone South-West", Polygon([(13.2, 41.4), (13.5, 41.4), (13.5, 41.65), (13.2, 41.65)]), 15400),
-    ("DMA-4 Frosinone South-East", Polygon([(13.5, 41.4), (13.8, 41.4), (13.8, 41.65), (13.5, 41.65)]), 14900),
+    ("DMA-1 Ceccano Corridor", Polygon([(13.20, 41.65), (13.40, 41.65), (13.40, 41.90), (13.20, 41.90)]), 12200),
+    ("DMA-2 Frosinone North", Polygon([(13.40, 41.65), (13.60, 41.65), (13.60, 41.90), (13.40, 41.90)]), 13500),
+    ("DMA-3 Veroli / Alatri East", Polygon([(13.60, 41.65), (13.80, 41.65), (13.80, 41.90), (13.60, 41.90)]), 11600),
+    ("DMA-4 Ceprano / Pontecorvo", Polygon([(13.20, 41.40), (13.40, 41.40), (13.40, 41.65), (13.20, 41.65)]), 10800),
+    ("DMA-5 Frosinone South", Polygon([(13.40, 41.40), (13.60, 41.40), (13.60, 41.65), (13.40, 41.65)]), 12300),
+    ("DMA-6 Cassino Axis", Polygon([(13.60, 41.40), (13.80, 41.40), (13.80, 41.65), (13.60, 41.65)]), 10300),
 ]
+
+MATERIAL_WEIGHTS = [
+    ("grey_cast_iron", 0.28),
+    ("ductile_iron", 0.24),
+    ("pvc", 0.20),
+    ("steel", 0.14),
+    ("hdpe", 0.10),
+    ("prestressed_concrete", 0.04),
+]
+
+DIAMETER_WEIGHTS = [
+    (150, 0.18),
+    (180, 0.22),
+    (200, 0.20),
+    (250, 0.16),
+    (300, 0.12),
+    (350, 0.07),
+    (450, 0.05),
+]
+
+
+def load_istat_priors() -> dict:
+    if not ISTAT_PATH.exists():
+        return {"source": "fallback"}
+    with ISTAT_PATH.open("r", encoding="utf-8") as fh:
+        data = json.load(fh)
+    return {
+        "source": "data/processed/istat_frosinone.json",
+        "lazio_source_mix": data.get("tav3_lazio_2020_million_m3", {}),
+        "frosinone_nrw_pct": data.get("tav17_frosinone", {}).get("nrw_pct"),
+        "frosinone_operator_share_pct": data.get("tav23_frosinone_gestione", {}).get("acqua_immessa_specializzata_pct"),
+        "note": "The workbook on disk does not expose a direct Lazio pipe-material table; material/diameter weights are deterministic synthetic priors documented in attrs.",
+    }
+
+
+def weighted_pick(weighted_values: list[tuple[object, float]], idx: int):
+    cursor = ((idx * 37) % 1000) / 1000.0
+    cumulative = 0.0
+    for value, weight in weighted_values:
+        cumulative += weight
+        if cursor <= cumulative:
+            return value
+    return weighted_values[-1][0]
+
+
+def connect_supabase():
+    password = os.getenv("SUPABASE_DB_PASSWORD")
+    if password:
+        return psycopg.connect(
+            host=os.getenv("SUPABASE_DB_HOST", "aws-1-eu-central-1.pooler.supabase.com"),
+            port=int(os.getenv("SUPABASE_DB_PORT", "5432")),
+            dbname=os.getenv("SUPABASE_DB_NAME", "postgres"),
+            user=os.getenv("SUPABASE_DB_USER", "postgres.cnqwlkkoikcymavbnnfu"),
+            password=password,
+            sslmode=os.getenv("SUPABASE_DB_SSLMODE", "require"),
+            autocommit=True,
+        )
+    return psycopg.connect(os.environ["SUPABASE_DB_POOLER_URL"], autocommit=True)
 
 
 def normalize_highway(value) -> list[str]:
@@ -41,23 +104,23 @@ def normalize_highway(value) -> list[str]:
 
 
 def material_for(highway: str, idx: int) -> str:
-    if "motorway" in highway or "trunk" in highway or "primary" in highway:
-        materials = ["ductile_iron", "steel", "prestressed_concrete"]
-    elif "secondary" in highway:
-        materials = ["ductile_iron", "steel", "hdpe"]
+    if "motorway" in highway or "trunk" in highway:
+        weighted = [("ductile_iron", 0.34), ("steel", 0.28), ("prestressed_concrete", 0.22), ("grey_cast_iron", 0.16)]
+    elif "primary" in highway or "secondary" in highway:
+        weighted = [("ductile_iron", 0.30), ("grey_cast_iron", 0.24), ("steel", 0.18), ("pvc", 0.16), ("hdpe", 0.12)]
     else:
-        materials = ["hdpe", "pvc", "grey_cast_iron"]
-    return materials[idx % len(materials)]
+        weighted = MATERIAL_WEIGHTS
+    return str(weighted_pick(weighted, idx))
 
 
 def diameter_for(highway: str, length_m: float) -> int:
     if "motorway" in highway or "trunk" in highway:
-        return 450 if length_m > 500 else 350
+        return 450 if length_m > 450 else 350
     if "primary" in highway:
-        return 350 if length_m > 400 else 300
+        return 350 if length_m > 320 else 300
     if "secondary" in highway:
-        return 250 if length_m > 300 else 200
-    return 180 if length_m > 250 else 150
+        return 300 if length_m > 340 else 250
+    return int(weighted_pick(DIAMETER_WEIGHTS, int(length_m)))
 
 
 def install_year_for(idx: int) -> int:
@@ -113,9 +176,9 @@ def assign_dma_id(geometry) -> int:
     for idx, (_, polygon, _) in enumerate(DMA_DEFS, start=1):
         if polygon.contains(geometry.centroid):
             return idx
-    east = 2 if x >= 13.5 else 1
-    south = 2 if y < 41.65 else 0
-    return east + south
+    east_band = 0 if x < 13.4 else 1 if x < 13.6 else 2
+    south_band = 3 if y < 41.65 else 0
+    return min(6, east_band + south_band + 1)
 
 
 def truncate_topology(cur):
@@ -172,6 +235,7 @@ def insert_nodes(cur, nodes_gdf: gpd.GeoDataFrame) -> dict[int, int]:
 
 
 def insert_segments(cur, edges_gdf: gpd.GeoDataFrame, node_id_map: dict[int, int]):
+    istat_priors = load_istat_priors()
     rows = []
     for idx, (_, row) in enumerate(edges_gdf.iterrows(), start=1):
         highway_values = normalize_highway(row.get("highway"))
@@ -194,6 +258,9 @@ def insert_segments(cur, edges_gdf: gpd.GeoDataFrame, node_id_map: dict[int, int
                     "name": row.get("name"),
                     "source_u": int(row.get("u_original") or row.name[0]),
                     "source_v": int(row.get("v_original") or row.name[1]),
+                    "diameter_prior_source": "ISTAT-derived synthetic prior",
+                    "material_prior_source": "ISTAT-derived synthetic prior",
+                    "istat_priors": istat_priors,
                 },
             )
         )
@@ -225,11 +292,10 @@ def insert_segments(cur, edges_gdf: gpd.GeoDataFrame, node_id_map: dict[int, int
 
 
 def main():
-    dsn = __import__("os").environ["SUPABASE_DB_POOLER_URL"]
     nodes_gdf, edges_gdf = load_and_simplify()
     dmas_gdf = seed_dmas()
 
-    with psycopg.connect(dsn, autocommit=True) as conn:
+    with connect_supabase() as conn:
         with conn.cursor() as cur:
             truncate_topology(cur)
             insert_dmas(cur, dmas_gdf)

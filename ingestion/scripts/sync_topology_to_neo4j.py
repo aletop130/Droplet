@@ -15,6 +15,28 @@ from shapely import wkt
 ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(ROOT / "backend" / ".env")
 
+CHUNK_SIZE = 500
+
+
+def connect_supabase():
+    password = os.getenv("SUPABASE_DB_PASSWORD")
+    if password:
+        return psycopg.connect(
+            host=os.getenv("SUPABASE_DB_HOST", "aws-1-eu-central-1.pooler.supabase.com"),
+            port=int(os.getenv("SUPABASE_DB_PORT", "5432")),
+            dbname=os.getenv("SUPABASE_DB_NAME", "postgres"),
+            user=os.getenv("SUPABASE_DB_USER", "postgres.cnqwlkkoikcymavbnnfu"),
+            password=password,
+            sslmode=os.getenv("SUPABASE_DB_SSLMODE", "require"),
+            autocommit=True,
+        )
+    return psycopg.connect(os.environ["SUPABASE_DB_POOLER_URL"], autocommit=True)
+
+
+def chunked(rows: list[dict], size: int = CHUNK_SIZE):
+    for start in range(0, len(rows), size):
+        yield rows[start : start + size]
+
 
 def load_gdf(conn, query: str, columns: list[str], crs: int = 4326) -> gpd.GeoDataFrame:
     with conn.cursor() as cur:
@@ -26,8 +48,7 @@ def load_gdf(conn, query: str, columns: list[str], crs: int = 4326) -> gpd.GeoDa
 
 
 def load_data():
-    dsn = os.environ["SUPABASE_DB_POOLER_URL"]
-    with psycopg.connect(dsn, autocommit=True) as conn:
+    with connect_supabase() as conn:
         dmas = load_gdf(
             conn,
             "SELECT id, name, population, operator, attrs, ST_AsText(geom) AS wkt FROM dmas ORDER BY id",
@@ -148,60 +169,79 @@ def sync_to_neo4j(dmas: gpd.GeoDataFrame, nodes: gpd.GeoDataFrame, segments: gpd
         driver.execute_query("CREATE CONSTRAINT source_id IF NOT EXISTS FOR (n:Source) REQUIRE n.id IS UNIQUE", database_=database)
         driver.execute_query("MATCH (n) DETACH DELETE n", database_=database)
 
-        driver.execute_query(
-            """
-            UNWIND $rows AS row
-            MERGE (d:DMA {id: row.id})
-            SET d.name = row.name,
-                d.population = row.population,
-                d.operator = row.operator,
-                d.attrs_json = row.attrs_json
-            """,
-            rows=[
-                {
-                    "id": int(row.id),
-                    "name": row.name,
-                    "population": row.population,
-                    "operator": row.operator,
-                    "attrs_json": json.dumps(row.attrs or {}, ensure_ascii=True),
-                }
-                for row in dmas.itertuples()
-            ],
-            database_=database,
-        )
-        driver.execute_query(
-            """
-            UNWIND $rows AS row
-            MERGE (n:PipeNode {id: row.id})
-            SET n.node_type = row.node_type,
-                n.name = row.name,
-                n.elevation_m = row.elevation_m,
-                n.attrs_json = row.attrs_json,
-                n.lon = row.lon,
-                n.lat = row.lat,
-                n.capacity_m3 = row.capacity_m3,
-                n.max_level_m = row.max_level_m,
-                n.min_level_m = row.min_level_m,
-                n.data_source = row.data_source
-            """,
-            rows=[
-                {
-                    "id": int(row.id),
-                    "node_type": row.node_type,
-                    "name": row.name,
-                    "elevation_m": row.elevation_m,
-                    "attrs_json": json.dumps(row.attrs or {}, ensure_ascii=True),
-                    "lon": float(row.geometry.x),
-                    "lat": float(row.geometry.y),
-                    "capacity_m3": float((row.attrs or {}).get("capacity_m3") or 0.0),
-                    "max_level_m": float((row.attrs or {}).get("max_level_m") or 0.0),
-                    "min_level_m": float((row.attrs or {}).get("min_level_m") or 0.0),
-                    "data_source": str((row.attrs or {}).get("data_source") or "unknown"),
-                }
-                for row in nodes.itertuples()
-            ],
-            database_=database,
-        )
+        dma_rows = [
+            {
+                "id": int(row.id),
+                "name": row.name,
+                "population": row.population,
+                "operator": row.operator,
+                "attrs_json": json.dumps(row.attrs or {}, ensure_ascii=True),
+            }
+            for row in dmas.itertuples()
+        ]
+        node_rows = [
+            {
+                "id": int(row.id),
+                "node_type": row.node_type,
+                "name": row.name,
+                "elevation_m": row.elevation_m,
+                "attrs_json": json.dumps(row.attrs or {}, ensure_ascii=True),
+                "lon": float(row.geometry.x),
+                "lat": float(row.geometry.y),
+                "capacity_m3": float((row.attrs or {}).get("capacity_m3") or 0.0),
+                "max_level_m": float((row.attrs or {}).get("max_level_m") or 0.0),
+                "min_level_m": float((row.attrs or {}).get("min_level_m") or 0.0),
+                "data_source": str((row.attrs or {}).get("data_source") or "unknown"),
+            }
+            for row in nodes.itertuples()
+        ]
+        segment_rows = [
+            {
+                "id": int(row.id),
+                "length_m": float(row.length_m),
+                "diameter_mm": int(row.diameter_mm) if row.diameter_mm is not None else None,
+                "material": row.material,
+                "install_year": int(row.install_year) if row.install_year is not None else None,
+                "dma_id": int(row.dma_id),
+                "from_node": int(row.from_node),
+                "to_node": int(row.to_node),
+                "attrs_json": json.dumps(row.attrs or {}, ensure_ascii=True),
+            }
+            for row in segments.itertuples()
+        ]
+
+        for batch in chunked(dma_rows):
+            driver.execute_query(
+                """
+                UNWIND $rows AS row
+                MERGE (d:DMA {id: row.id})
+                SET d.name = row.name,
+                    d.population = row.population,
+                    d.operator = row.operator,
+                    d.attrs_json = row.attrs_json
+                """,
+                rows=batch,
+                database_=database,
+            )
+        for batch in chunked(node_rows):
+            driver.execute_query(
+                """
+                UNWIND $rows AS row
+                MERGE (n:PipeNode {id: row.id})
+                SET n.node_type = row.node_type,
+                    n.name = row.name,
+                    n.elevation_m = row.elevation_m,
+                    n.attrs_json = row.attrs_json,
+                    n.lon = row.lon,
+                    n.lat = row.lat,
+                    n.capacity_m3 = row.capacity_m3,
+                    n.max_level_m = row.max_level_m,
+                    n.min_level_m = row.min_level_m,
+                    n.data_source = row.data_source
+                """,
+                rows=batch,
+                database_=database,
+            )
         driver.execute_query(
             """
             MATCH (n:PipeNode)
@@ -232,49 +272,38 @@ def sync_to_neo4j(dmas: gpd.GeoDataFrame, nodes: gpd.GeoDataFrame, segments: gpd
             """,
             database_=database,
         )
-        driver.execute_query(
-            """
-            UNWIND $rows AS row
-            MERGE (s:PipeSegment {id: row.id})
-            SET s.length_m = row.length_m,
-                s.diameter_mm = row.diameter_mm,
-                s.material = row.material,
-                s.install_year = row.install_year,
-                s.dma_id = row.dma_id,
-                s.from_node = row.from_node,
-                s.to_node = row.to_node,
-                s.attrs_json = row.attrs_json
-            """,
-            rows=[
-                {
-                    "id": int(row.id),
-                    "length_m": float(row.length_m),
-                    "diameter_mm": int(row.diameter_mm) if row.diameter_mm is not None else None,
-                    "material": row.material,
-                    "install_year": int(row.install_year) if row.install_year is not None else None,
-                    "dma_id": int(row.dma_id),
-                    "from_node": int(row.from_node),
-                    "to_node": int(row.to_node),
-                    "attrs_json": json.dumps(row.attrs or {}, ensure_ascii=True),
-                }
-                for row in segments.itertuples()
-            ],
-            database_=database,
-        )
-        driver.execute_query(
-            """
-            UNWIND $rows AS row
-            MATCH (s:PipeSegment {id: row.id})
-            MATCH (from:PipeNode {id: row.from_node})
-            MATCH (to:PipeNode {id: row.to_node})
-            MATCH (dma:DMA {id: row.dma_id})
-            MERGE (s)-[:STARTS_AT]->(from)
-            MERGE (s)-[:ENDS_AT]->(to)
-            MERGE (s)-[:IN_DMA]->(dma)
-            """,
-            rows=segments.drop(columns=["geometry"]).to_dict("records"),
-            database_=database,
-        )
+        for batch in chunked(segment_rows):
+            driver.execute_query(
+                """
+                UNWIND $rows AS row
+                MERGE (s:PipeSegment {id: row.id})
+                SET s.length_m = row.length_m,
+                    s.diameter_mm = row.diameter_mm,
+                    s.material = row.material,
+                    s.install_year = row.install_year,
+                    s.dma_id = row.dma_id,
+                    s.from_node = row.from_node,
+                    s.to_node = row.to_node,
+                    s.attrs_json = row.attrs_json
+                """,
+                rows=batch,
+                database_=database,
+            )
+        for batch in chunked(segment_rows):
+            driver.execute_query(
+                """
+                UNWIND $rows AS row
+                MATCH (s:PipeSegment {id: row.id})
+                MATCH (from:PipeNode {id: row.from_node})
+                MATCH (to:PipeNode {id: row.to_node})
+                MATCH (dma:DMA {id: row.dma_id})
+                MERGE (s)-[:STARTS_AT]->(from)
+                MERGE (s)-[:ENDS_AT]->(to)
+                MERGE (s)-[:IN_DMA]->(dma)
+                """,
+                rows=batch,
+                database_=database,
+            )
         driver.execute_query(
             """
             MATCH (n:PipeNode)<-[:STARTS_AT|ENDS_AT]-(a:PipeSegment),

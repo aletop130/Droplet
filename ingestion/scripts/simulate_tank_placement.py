@@ -19,6 +19,21 @@ load_dotenv(ROOT / "backend" / ".env")
 BBOX = (13.2, 41.4, 13.8, 41.9)
 
 
+def connect_supabase():
+    password = os.getenv("SUPABASE_DB_PASSWORD")
+    if password:
+        return psycopg.connect(
+            host=os.getenv("SUPABASE_DB_HOST", "aws-1-eu-central-1.pooler.supabase.com"),
+            port=int(os.getenv("SUPABASE_DB_PORT", "5432")),
+            dbname=os.getenv("SUPABASE_DB_NAME", "postgres"),
+            user=os.getenv("SUPABASE_DB_USER", "postgres.cnqwlkkoikcymavbnnfu"),
+            password=password,
+            sslmode=os.getenv("SUPABASE_DB_SSLMODE", "require"),
+            autocommit=True,
+        )
+    return psycopg.connect(os.environ["SUPABASE_DB_POOLER_URL"], autocommit=True)
+
+
 def clean_json(value):
     if isinstance(value, float) and math.isnan(value):
         return None
@@ -60,8 +75,8 @@ def classify_feature(row) -> tuple[str, str, bool]:
     covered = str(row.get("covered") or "")
     if man_made in {"storage_tank", "water_tower", "reservoir_covered", "water_works"}:
         return "osm", man_made, covered == "yes" or man_made == "reservoir_covered"
-    if landuse == "reservoir" and covered != "yes":
-        return "sentinel_ndwi", "open_basin", False
+    if landuse == "reservoir":
+        return "osm", "reservoir", covered == "yes"
     return "osm", "reservoir", covered == "yes"
 
 
@@ -113,7 +128,7 @@ def make_synthetic_tanks(dmas: gpd.GeoDataFrame, junctions: gpd.GeoDataFrame, ex
         candidates = junctions[junctions.within(dma.geometry)].copy()
         if candidates.empty:
             continue
-        target_count = max(1, round(float(dma.population) / 4000))
+        target_count = max(10, round(float(dma.population) / 1350))
         candidates["lat_rank"] = candidates.geometry.y.rank(method="dense", ascending=False)
         candidates["street_count"] = candidates["attrs"].apply(lambda attrs: int((attrs or {}).get("street_count", 0)))
         candidates = candidates.sort_values(["lat_rank", "street_count"], ascending=[True, False])
@@ -161,6 +176,9 @@ def make_synthetic_tanks(dmas: gpd.GeoDataFrame, junctions: gpd.GeoDataFrame, ex
 
 def replace_tanks(conn, tanks: gpd.GeoDataFrame):
     with conn.cursor() as cur:
+        cur.execute("DELETE FROM tank_anomalies")
+        cur.execute("DELETE FROM tank_balance")
+        cur.execute("DELETE FROM tank_state")
         cur.execute("DELETE FROM pipe_nodes WHERE node_type = 'tank'")
         cur.execute(
             """
@@ -188,8 +206,7 @@ def replace_tanks(conn, tanks: gpd.GeoDataFrame):
 
 
 def main():
-    dsn = os.environ["SUPABASE_DB_POOLER_URL"]
-    with psycopg.connect(dsn, autocommit=True) as conn:
+    with connect_supabase() as conn:
         dmas = load_dmas(conn)
         junctions = load_junction_nodes(conn)
         base_tanks = make_osm_and_ndwi_tanks(dmas)
