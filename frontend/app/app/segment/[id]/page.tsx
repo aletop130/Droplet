@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import { useParams } from "next/navigation"
 import {
@@ -17,13 +18,15 @@ import { ExplainStream } from "@/components/explain/ExplainStream"
 import { DataBadge } from "@/components/ui/DataBadge"
 import { GlassCard } from "@/components/ui/GlassCard"
 import { PhiPill } from "@/components/ui/PhiPill"
-import { getSegment } from "@/lib/api"
+import { useDataStore } from "@/store/dataStore"
 import { useSelectionStore } from "@/store/selectionStore"
 import type { SegmentDetail } from "@/types/domain"
 
 export default function SegmentPage() {
   const params = useParams<{ id: string }>()
   const id = Number(params.id)
+  const cachedDetail = useDataStore((state) => state.segmentDetailsById[id])
+  const fetchSegmentDetail = useDataStore((state) => state.fetchSegmentDetail)
   const [detail, setDetail] = useState<SegmentDetail | null>(null)
   const [openExplain, setOpenExplain] = useState(false)
   const setActiveSegment = useSelectionStore((state) => state.setActiveSegment)
@@ -31,8 +34,12 @@ export default function SegmentPage() {
   useEffect(() => {
     if (!Number.isFinite(id)) return
     setActiveSegment(id)
-    getSegment(id).then(setDetail)
-  }, [id, setActiveSegment])
+    if (cachedDetail) {
+      setDetail(cachedDetail)
+      return
+    }
+    void fetchSegmentDetail(id).then(setDetail)
+  }, [cachedDetail, fetchSegmentDetail, id, setActiveSegment])
 
   if (!detail) {
     return <div className="px-4 py-24 text-sm text-[var(--text-lo)]">Loading segment detail...</div>
@@ -55,9 +62,9 @@ export default function SegmentPage() {
           <h1 className="text-h1 mt-2">{detail.segment.properties.dma_name}</h1>
           <div className="mt-4 flex flex-wrap gap-2">
             <PhiPill value={detail.segment.properties.phi} />
-            <DataBadge label="materiale" value={detail.segment.properties.material} tone="neutral" />
-            <DataBadge label="diametro" value={`${detail.segment.properties.diameter_mm} mm`} tone="neutral" />
-            <DataBadge label="posa" value={String(detail.segment.properties.install_year ?? "n/a")} tone="neutral" />
+            <DataBadge label="material" value={detail.segment.properties.material} tone="neutral" />
+            <DataBadge label="diameter" value={`${detail.segment.properties.diameter_mm} mm`} tone="neutral" />
+            <DataBadge label="install" value={String(detail.segment.properties.install_year ?? "n/a")} tone="neutral" />
           </div>
         </div>
       </section>
@@ -77,10 +84,10 @@ export default function SegmentPage() {
 
         <GlassCard className="rounded-[1.8rem] p-5">
           <div className="mb-4 text-sm text-[var(--text-hi)]">S2 NDVI + ECOSTRESS LST</div>
-          <div className="grid h-full min-h-[280px] place-items-center rounded-[1.6rem] border border-[rgba(173,218,255,0.1)] bg-[radial-gradient(circle_at_30%_20%,rgba(68,215,192,0.18),transparent_32%),radial-gradient(circle_at_70%_68%,rgba(251,146,60,0.16),transparent_28%),rgba(255,255,255,0.03)]">
-            <div className="text-center">
-              <div className="text-[var(--text-hi)]">Satellite composite placeholder</div>
-              <div className="mt-2 text-sm text-[var(--text-md)]">Storage asset non disponibile, rendering realistico attivo.</div>
+          <div className="grid h-full min-h-[280px] place-items-center rounded-[1.6rem] border border-[var(--glass-stroke)] bg-[radial-gradient(circle_at_30%_20%,rgba(38,188,169,0.22),transparent_32%),radial-gradient(circle_at_70%_68%,rgba(251,146,60,0.18),transparent_28%),rgba(255,255,255,0.42)]">
+            <div className="grid justify-items-center text-center">
+              <Image src="/droplet-logo.svg" alt="Droplet" width={270} height={58} className="h-12 w-auto" />
+              <div className="mt-3 text-sm text-[var(--text-md)]">Storage asset non disponibile, rendering realistico attivo.</div>
             </div>
           </div>
         </GlassCard>
@@ -111,12 +118,12 @@ export default function SegmentPage() {
           <div className="grid min-h-[22rem] place-items-center rounded-[1.6rem] border border-[rgba(173,218,255,0.1)] bg-[rgba(255,255,255,0.03)]">
             <svg viewBox="0 0 360 260" className="h-full w-full">
               <circle cx="180" cy="130" r="38" fill="rgba(75,214,255,0.14)" stroke="#4bd6ff" />
-              <text x="180" y="136" textAnchor="middle" fill="#edf8ff" fontSize="13">Segment {id}</text>
+              <text x="180" y="136" textAnchor="middle" fill="#102033" fontSize="13">Segment {id}</text>
               {[["DMA", 86, 64], ["Tank", 288, 88], ["Incident", 286, 188], ["Upstream", 84, 194]].map(([label, x, y]) => (
                 <g key={label}>
                   <line x1="180" y1="130" x2={Number(x)} y2={Number(y)} stroke="rgba(173,218,255,0.24)" />
                   <circle cx={Number(x)} cy={Number(y)} r="28" fill="rgba(255,255,255,0.03)" stroke="rgba(173,218,255,0.16)" />
-                  <text x={Number(x)} y={Number(y) + 4} textAnchor="middle" fill="#9eb5cf" fontSize="11">{label}</text>
+                  <text x={Number(x)} y={Number(y) + 4} textAnchor="middle" fill="#4b6078" fontSize="11">{label}</text>
                 </g>
               ))}
             </svg>
@@ -144,13 +151,13 @@ export default function SegmentPage() {
           <div className="mb-4 text-sm text-[var(--text-hi)]">Actions</div>
           <div className="grid gap-2">
             <button type="button" onClick={() => setOpenExplain(true)} className="rounded-2xl border border-[rgba(75,214,255,0.24)] px-4 py-3 text-left text-[var(--acea-cyan)]">
-              Spiega
+              Explain
             </button>
             <button type="button" className="rounded-2xl border border-[rgba(173,218,255,0.12)] px-4 py-3 text-left text-[var(--text-md)]">
-              Log intervento
+              Log intervention
             </button>
             <Link href="/app/map" className="rounded-2xl border border-[rgba(173,218,255,0.12)] px-4 py-3 text-[var(--text-md)]">
-              Apri in mappa
+              Open on map
             </Link>
           </div>
         </GlassCard>

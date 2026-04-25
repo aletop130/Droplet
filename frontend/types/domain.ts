@@ -372,12 +372,6 @@ export type ControlRecommendation = {
   created_at: string
 }
 
-export type SearchOmniResult = {
-  type: "segment" | "tank" | "dma" | "incident" | "audit"
-  id: number
-  label: string
-}
-
 export type ChatCitation = {
   audit_log_id: number
   doc_ids?: number[]
@@ -393,6 +387,19 @@ export type ChatStreamChunk = {
   suggested_actions?: ControlRecommendation[]
 }
 
+export type ChatAgentMode = "operations" | "investments"
+
+export type ChatAttachmentKind = "image" | "audio" | "document"
+
+export type ChatAttachment = {
+  id: string
+  name: string
+  mime_type: string
+  size_bytes: number
+  kind: ChatAttachmentKind
+  data_url?: string
+}
+
 export type ExplainStreamChunk = {
   token?: string
   done?: boolean
@@ -400,8 +407,267 @@ export type ExplainStreamChunk = {
   citations?: ChatCitation[]
 }
 
+export type AreraIndicator = {
+  code: "A1" | "A2" | "A3" | "A4" | "A5"
+  label: string
+  weight: number
+  baseline: number
+  target: number
+  current: number
+  impact_area: string
+}
+
+export type InvestmentOpportunityFeature = {
+  type: "Feature"
+  geometry: GeoPoint
+  properties: {
+    node_id: number
+    falde_id: string
+    profondita_m: number
+    tipo_acqua: string
+    consumo_storico: number
+    rendimento_attuale: number
+    intervento_priorita: "critical" | "warning" | "ok"
+    estimated_cost_eur: number
+    arera_roi_pct: number
+    payback_years: number
+    recommended_action: string
+  }
+}
+
+export type InvestmentOverlay = {
+  type: "FeatureCollection"
+  features: InvestmentOpportunityFeature[]
+  metadata?: {
+    source?: string
+    layers?: string[]
+  }
+}
+
+export type InvestmentCalculatorInput = {
+  capital_cost_eur: number
+  line_length_m: number
+  diameter_mm: number
+  useful_life_years: number
+  saved_consumption_m3_year: number
+  avoided_losses_m3_year: number
+  tariff_eur_m3: number
+  water_value_eur_m3: number
+  annual_maintenance_eur: number
+  indicator_delta_a1: number
+  indicator_delta_a2: number
+}
+
+export type InvestmentCalculatorResult = {
+  annual_saving_eur: number
+  total_spend_eur: number
+  indicator_benefit_score: number
+  estimated_arera_bonus_eur: number
+  lifetime_benefit_eur: number
+  roi_pct: number
+  payback_years: number | null
+  recommendation: "invest" | "review"
+}
+
+export type InvestmentStrategy = {
+  summary: string
+  roi_target_pct: number
+  opportunities: InvestmentOpportunityFeature[]
+  indicators: AreraIndicator[]
+  disclaimer: string
+}
+
+export type CopernicusSource = "s2" | "s3"
+
+export type CopernicusBbox = {
+  west: number
+  south: number
+  east: number
+  north: number
+}
+
+export type CopernicusProduct = {
+  source: CopernicusSource
+  source_name: string
+  collection: string
+  product_id: string
+  ts: string
+  bbox: CopernicusBbox
+  cloud_cover_pct: number | null
+  status: "pending" | "ingested" | "failed"
+  file_url: string | null
+  metrics: Record<string, number>
+  provenance: Record<string, unknown>
+  processed_at: string | null
+}
+
+export type CopernicusStatus = {
+  status: string
+  pilot: string
+  bbox: CopernicusBbox
+  coverage: {
+    area: string
+    crs: string
+    sources: Record<CopernicusSource, {
+      name: string
+      collection: string
+      resolution_m: number
+      metrics: string[]
+      refresh: string
+    }>
+  }
+  openeo: {
+    url: string
+    enabled: boolean
+    credentials_configured: boolean
+  }
+  last_fetch: string
+  latest: CopernicusProduct[]
+}
+
+export type CopernicusHistory = {
+  hours: number
+  items: CopernicusProduct[]
+}
+
+export type CopernicusIngestResult = {
+  accepted: boolean
+  manual: boolean
+  mode: "openeo" | "dry_run"
+  errors: Array<{ source: string; message: string }>
+  items: CopernicusProduct[]
+  processed_at: string
+}
+
 export type PageContext = {
   route?: string
   entity_type?: "segment" | "tank" | "dma" | "incident" | null
   entity_id?: number | null
+}
+
+export type CeccanoStatus = "normal" | "critical" | "emergency"
+
+export type CeccanoOverview = {
+  network: string
+  center: { lat: number; lon: number }
+  counts: {
+    districts: number
+    valves: number
+    reservoirs: number
+    conduits: number
+    sensors: number
+    users: number
+  }
+  status: {
+    critical: number
+    emergency: number
+    normal: number
+    avg_pressure_bar: number
+    avg_loss_pct: number
+    db_load_pct: number
+    night_mode: boolean
+  }
+  targets: Record<string, number>
+  ai_summary: string
+  updated_at: string
+}
+
+export type CeccanoDistrict = {
+  id: string
+  name: string
+  zone: "ALTO" | "CENTRO" | "BASSA" | "PIANO"
+  altitude_min_m: number
+  altitude_max_m: number
+  territory_km2: number
+  users: number
+  consumption_m3_day: number
+  pressure_target_bar: number
+  pressure_actual_bar: number
+  loss_pct: number
+  loss_day_pct: number
+  status: CeccanoStatus
+  issue: string
+  quality_rating: number
+  water_efficacy_pct: number
+  moisture_percentage: number
+  humidity_avg: number
+  araise_rank: number
+  violations: number
+  geometry: GeoPolygon
+}
+
+export type CeccanoValve = {
+  valve_id: string
+  district_id: string
+  zone: string
+  altitude_m: number
+  type: "day" | "night"
+  name: string
+  loc_pos_x: number
+  loc_pos_y: number
+  posxx: number
+  posyy: number
+  target_curve: string
+  target_night: string
+  stat_today_pct: number
+  stat_night_pct: number
+  flow_today_m3h: number
+  flow_night_m3h: number
+  recommended_open_pct: number
+}
+
+export type CeccanoReservoir = {
+  id: string
+  name: string
+  district_id: string
+  capacity_m3: number
+  level_pct: number
+  elevation_m: number
+  age_years: number
+  maintenance_due: string
+  coordinates: [number, number]
+}
+
+export type CeccanoPressureMetric = {
+  district_id: string
+  zone: string
+  target_bar: number
+  actual_bar: number
+  calculated_bar: number
+  delta_bar: number
+  status: "low" | "ok"
+}
+
+export type CeccanoForecastPoint = {
+  ts: string
+  expected_flow_m3h: number
+  expected_pressure_bar: number
+  risk_score: number
+}
+
+export type CeccanoForecast = {
+  horizon_hours: number
+  points: CeccanoForecastPoint[]
+  bottlenecks: Array<{ district_id: string; hour_window: string; risk: string }>
+}
+
+export type CeccanoAdjustResult = {
+  accepted: boolean
+  valve_id: string
+  district_id: string
+  previous_open_pct: number
+  target_open_pct: number
+  expected_pressure_bar: number
+  expected_flow_m3h: number
+  rationale: string
+  audit: { operator_id: string; mode?: string | null; created_at: string }
+}
+
+export type CeccanoAnalysis = {
+  overview: CeccanoOverview
+  districts: CeccanoDistrict[]
+  valves: CeccanoValve[]
+  reservoirs: CeccanoReservoir[]
+  pressure: CeccanoPressureMetric[]
+  forecast: CeccanoForecast
 }

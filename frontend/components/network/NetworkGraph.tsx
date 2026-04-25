@@ -94,7 +94,11 @@ function buildProjection(graph: NetworkGraphData | null) {
   }
 }
 
-export function NetworkGraph() {
+type NetworkGraphProps = {
+  embedded?: boolean
+}
+
+export function NetworkGraph({ embedded = false }: NetworkGraphProps) {
   const [graph, setGraph] = useState<NetworkGraphData | null>(null)
   const [areas, setAreas] = useState<NetworkArea[]>([])
   const [selectedAreaId, setSelectedAreaId] = useState<number | null>(null)
@@ -211,17 +215,17 @@ export function NetworkGraph() {
 
   if (error) {
     return (
-      <div className="mx-auto max-w-[1450px] rounded-[1.6rem] border border-[rgba(244,63,94,0.24)] bg-[rgba(244,63,94,0.06)] p-5 text-sm text-[var(--text-hi)]">
+      <div className={cn("mx-auto max-w-[1450px] rounded-[1.6rem] border border-[rgba(244,63,94,0.24)] bg-[rgba(244,63,94,0.06)] p-5 text-sm text-[var(--text-hi)]", embedded && "mt-1")}>
         {error}
       </div>
     )
   }
 
   return (
-    <div className="mx-auto grid max-w-[1600px] gap-5">
+    <div className={cn("mx-auto grid max-w-[1600px] gap-5", embedded && "pb-3")}>
       <section className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="text-data text-[var(--acea-cyan)]">Tank & Pipe Network</div>
+          <div className="text-data text-[var(--acea-cyan)]">Map network detail</div>
           <h1 className="text-page-title mt-2">Ciociaria hydraulic graph</h1>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -240,7 +244,7 @@ export function NetworkGraph() {
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_390px]">
-        <div className="min-w-0 rounded-[1.6rem] border border-[rgba(173,218,255,0.12)] bg-[rgba(8,18,34,0.62)] p-3 shadow-[0_24px_70px_rgba(0,0,0,0.26)] backdrop-blur-xl">
+        <div className="min-w-0 rounded-[1.6rem] border border-[var(--glass-stroke)] bg-[rgba(255,255,255,0.78)] p-3 shadow-[0_24px_70px_rgba(8,53,107,0.12)] backdrop-blur-xl">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3 px-1">
             <div className="flex flex-wrap items-center gap-2">
               <div className="flex min-w-[15rem] items-center gap-2 rounded-2xl border border-[rgba(173,218,255,0.1)] bg-[rgba(255,255,255,0.03)] px-3 py-2">
@@ -251,7 +255,7 @@ export function NetworkGraph() {
                   className="w-full bg-transparent text-sm text-[var(--text-hi)] outline-none"
                 >
                   {areas.map((area) => (
-                    <option key={area.id} value={area.id} className="bg-[#071120] text-white">
+                    <option key={area.id} value={area.id} className="bg-white text-[#102033]">
                       {area.name} - {area.pipe_count} pipes - {area.tank_count} tanks
                     </option>
                   ))}
@@ -280,7 +284,7 @@ export function NetworkGraph() {
             </div>
           </div>
 
-          <div className="relative aspect-[16/10] min-h-[33rem] overflow-hidden rounded-[1.2rem] border border-[rgba(173,218,255,0.08)] bg-[radial-gradient(circle_at_28%_16%,rgba(75,214,255,0.12),transparent_28%),linear-gradient(180deg,rgba(4,8,18,0.74),rgba(8,18,34,0.9))]">
+          <div className="relative aspect-[16/10] min-h-[33rem] overflow-hidden rounded-[1.2rem] border border-[var(--glass-stroke)] bg-[radial-gradient(circle_at_28%_16%,rgba(75,214,255,0.14),transparent_28%),linear-gradient(180deg,rgba(255,255,255,0.92),rgba(239,247,255,0.96))]">
             {loading || !graph ? (
               <div className="absolute inset-0 grid place-items-center">
                 <div className="flex items-center gap-3 text-sm text-[var(--text-md)]">
@@ -297,7 +301,7 @@ export function NetworkGraph() {
             >
               <defs>
                 <pattern id="network-grid" width="42" height="42" patternUnits="userSpaceOnUse">
-                  <path d="M 42 0 L 0 0 0 42" fill="none" stroke="rgba(173,218,255,0.08)" strokeWidth="1" />
+                  <path d="M 42 0 L 0 0 0 42" fill="none" stroke="rgba(8,53,107,0.08)" strokeWidth="1" />
                 </pattern>
                 <linearGradient id="tank-water" x1="0" x2="1">
                   <stop offset="0%" stopColor="#2f90ff" />
@@ -365,7 +369,7 @@ export function NetworkGraph() {
                       <clipPath id={`tank-clip-${tank.id}`}>
                         <circle r={radius} />
                       </clipPath>
-                      <circle r={radius} fill="rgba(4,8,18,0.88)" stroke={phiColor[tank.phi] ?? phiColor[0]} strokeWidth={active ? 4 : 2.5} />
+                      <circle r={radius} fill="rgba(255,255,255,0.9)" stroke={phiColor[tank.phi] ?? phiColor[0]} strokeWidth={active ? 4 : 2.5} />
                       <rect
                         x={-radius}
                         y={radius - fillHeight}
@@ -375,12 +379,12 @@ export function NetworkGraph() {
                         clipPath={`url(#tank-clip-${tank.id})`}
                         opacity="0.86"
                       />
-                      <Droplets x={-7} y={-7} className="pointer-events-none h-3.5 w-3.5 text-white" />
+                      <Droplets x={-7} y={-7} className="pointer-events-none h-3.5 w-3.5 text-[var(--text-hi)]" />
                       {active || hovered === `tank:${tank.id}` ? (
                         <g transform={`translate(${radius + 10} -18)`}>
-                          <rect width="132" height="36" rx="10" fill="rgba(8,18,34,0.92)" stroke="rgba(173,218,255,0.16)" />
-                          <text x="10" y="15" fill="#edf8ff" fontSize="12" fontWeight="600">{tank.name}</text>
-                          <text x="10" y="29" fill="#9eb5cf" fontSize="11">{Math.round(tank.fillLevel)}% full</text>
+                          <rect width="132" height="36" rx="10" fill="rgba(255,255,255,0.94)" stroke="rgba(8,53,107,0.16)" />
+                          <text x="10" y="15" fill="#102033" fontSize="12" fontWeight="600">{tank.name}</text>
+                          <text x="10" y="29" fill="#4b6078" fontSize="11">{Math.round(tank.fillLevel)}% full</text>
                         </g>
                       ) : null}
                     </g>
@@ -388,7 +392,7 @@ export function NetworkGraph() {
                 })}
               </g>
             </svg>
-            <div className="pointer-events-none absolute bottom-3 left-3 rounded-xl border border-[rgba(173,218,255,0.1)] bg-[rgba(4,8,18,0.68)] px-3 py-2 text-data text-[var(--text-lo)]">
+            <div className="pointer-events-none absolute bottom-3 left-3 rounded-xl border border-[var(--glass-stroke)] bg-[rgba(255,255,255,0.86)] px-3 py-2 text-data text-[var(--text-lo)]">
               Updated {formatUpdated(graph?.generated_at)}
             </div>
           </div>

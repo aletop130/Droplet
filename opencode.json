@@ -14,8 +14,8 @@
         "apiKey": "sk-NklmaM1W15f-FWYh8Li-mA"
       },
       "models": {
-        "qwen3.6-27b": {
-          "name": "qwen3.6-27b"
+        "brick-v1-beta": {
+          "name": "brick-v1-beta",
         }
       }
     }

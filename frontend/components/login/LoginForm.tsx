@@ -26,17 +26,17 @@ export function LoginForm() {
       return
     }
     signIn(username)
-    router.replace("/app/network")
+    router.replace("/app/map")
   }
 
   return (
     <GlassCard className={`rounded-[2rem] p-6 ${error ? "animate-[shake_180ms_ease-in-out_2]" : ""}`}>
       <div className="mb-6 flex items-center gap-3">
-        <div className="grid h-12 w-12 place-items-center rounded-2xl border border-[rgba(75,214,255,0.2)] bg-[rgba(255,255,255,0.03)]">
-          <Image src="/droplet-mark.svg" alt="Droplet" width={28} height={28} priority />
+        <div className="grid h-12 w-12 place-items-center rounded-2xl border border-[rgba(10,92,168,0.14)] bg-[rgba(255,255,255,0.62)]">
+          <Image src="/droplet-mark.svg" alt="" width={29} height={29} priority />
         </div>
         <div>
-          <div className="text-display text-lg font-semibold text-[var(--acea-ice)]">Droplet</div>
+          <Image src="/droplet-logo.svg" alt="Droplet" width={164} height={35} priority className="h-7 w-auto" />
           <div className="text-sm text-[var(--text-md)]">Operator access</div>
         </div>
       </div>

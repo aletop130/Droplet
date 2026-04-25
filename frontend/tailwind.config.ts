@@ -23,7 +23,7 @@ const config: Config = {
         data: ["0.8rem", { lineHeight: "1.4", letterSpacing: "-0.02em" }]
       },
       boxShadow: {
-        glass: "0 30px 80px rgba(0,0,0,0.34)"
+        glass: "0 24px 70px rgba(8,53,107,0.18)"
       }
     }
   },
@@ -71,8 +71,8 @@ const config: Config = {
           overflow: "hidden",
           border: "1px solid rgba(75,214,255,0.28)",
           background:
-            "radial-gradient(circle at 30% 20%, rgba(216,244,255,0.32), transparent 36%), linear-gradient(135deg, rgba(75,214,255,0.22), rgba(47,144,255,0.12)), rgba(8,18,34,0.56)",
-          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.14), 0 14px 30px rgba(12,28,56,0.32)"
+            "radial-gradient(circle at 30% 20%, rgba(255,255,255,0.72), transparent 36%), linear-gradient(135deg, rgba(47,185,232,0.28), rgba(24,120,216,0.16)), rgba(245,250,254,0.9)",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.84), 0 14px 30px rgba(8,53,107,0.16)"
         }
       })
     }

@@ -13,7 +13,7 @@ export default function SettingsPage() {
   return (
     <div className="mx-auto grid max-w-4xl gap-5">
       <section>
-        <div className="text-data text-[var(--acea-cyan)]">Impostazioni</div>
+        <div className="text-data text-[var(--acea-cyan)]">Settings</div>
         <h1 className="text-h1 mt-2">Thresholds, session envelope and read-only v1 controls.</h1>
       </section>
 
@@ -29,7 +29,7 @@ export default function SettingsPage() {
           </div>
           <div className="rounded-[1.4rem] border border-[rgba(173,218,255,0.1)] bg-[rgba(255,255,255,0.03)] p-4">
             <div className="text-data text-[var(--text-lo)]">Session info</div>
-            <div className="mt-1 text-sm text-[var(--text-md)]">{session?.user ?? "operator"} · scadenza {session ? new Date(session.exp).toLocaleString("it-IT") : "n/a"}</div>
+            <div className="mt-1 text-sm text-[var(--text-md)]">{session?.user ?? "operator"} · expires {session ? new Date(session.exp).toLocaleString("en-GB") : "n/a"}</div>
           </div>
         </div>
         <div className="mt-4">
@@ -39,7 +39,7 @@ export default function SettingsPage() {
               router.replace("/login")
             }}
           >
-            Esci
+            Sign out
           </Button>
         </div>
       </GlassCard>

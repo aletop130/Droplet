@@ -23,7 +23,12 @@ const jetbrains = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "Droplet",
-  description: "Satellite and hydraulic intelligence for traceable water-network operations."
+  description: "Satellite and hydraulic intelligence for traceable water-network operations.",
+  icons: {
+    icon: "/droplet-mark.svg",
+    shortcut: "/droplet-mark.svg",
+    apple: "/droplet-mark.svg"
+  }
 }
 
 export default function RootLayout({
@@ -32,7 +37,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${unbounded.variable} ${jetbrains.variable} dark`}>
+    <html lang="en" className={`${inter.variable} ${unbounded.variable} ${jetbrains.variable}`}>
       <body className="antialiased">{children}</body>
     </html>
   )

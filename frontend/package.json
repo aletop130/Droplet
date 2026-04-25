@@ -28,7 +28,9 @@
     "react": "19.2.5",
     "react-dom": "19.2.5",
     "react-map-gl": "^7.1.9",
+    "react-markdown": "^10.1.0",
     "recharts": "^3.5.1",
+    "remark-gfm": "^4.0.1",
     "tailwind-merge": "^3.4.0",
     "three": "^0.181.2",
     "zustand": "^5.0.9"

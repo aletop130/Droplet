@@ -1,24 +1,19 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useState } from "react"
 
 import { DataBadge } from "@/components/ui/DataBadge"
 import { GlassCard } from "@/components/ui/GlassCard"
-import { getTanks } from "@/lib/api"
+import { useDataStore } from "@/store/dataStore"
 import type { TankFeature } from "@/types/domain"
 
 export default function TanksIndexPage() {
-  const [tanks, setTanks] = useState<TankFeature[]>([])
-
-  useEffect(() => {
-    getTanks().then((payload) => setTanks(payload.features))
-  }, [])
+  const tanks = useDataStore((state) => state.tanks) ?? ([] as TankFeature[])
 
   return (
     <div className="mx-auto grid max-w-[1450px] gap-5">
       <section>
-        <div className="text-data text-[var(--acea-cyan)]">Serbatoi</div>
+        <div className="text-data text-[var(--acea-cyan)]">Tanks</div>
         <h1 className="text-h1 mt-2">Fleet overview with direct navigation into tank states.</h1>
       </section>
 

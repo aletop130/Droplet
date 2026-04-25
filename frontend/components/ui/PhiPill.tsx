@@ -2,19 +2,19 @@ import { cn } from "@/lib/utils"
 
 const phiMap = {
   0: {
-    label: "Stabile",
+    label: "Stable",
     className: "border-[rgba(16,185,129,0.28)] bg-[rgba(16,185,129,0.12)] text-[var(--phi-green)]"
   },
   1: {
-    label: "Attenzione",
+    label: "Watch",
     className: "border-[rgba(251,191,36,0.28)] bg-[rgba(251,191,36,0.12)] text-[var(--phi-yellow)]"
   },
   2: {
-    label: "Criticità",
+    label: "Critical",
     className: "border-[rgba(251,146,60,0.28)] bg-[rgba(251,146,60,0.12)] text-[var(--phi-orange)]"
   },
   3: {
-    label: "Allerta",
+    label: "Alert",
     className: "border-[rgba(244,63,94,0.28)] bg-[rgba(244,63,94,0.12)] text-[var(--phi-red)]"
   }
 } as const

@@ -7,14 +7,13 @@ import {
   AlertTriangle,
   Bot,
   ChevronLeft,
-  Cable,
-  GitBranch,
+  Droplet,
   Layers,
   LayoutDashboard,
   Map,
+  Satellite,
   Settings,
-  ShieldCheck,
-  Waves
+  ShieldCheck
 } from "lucide-react"
 
 import { Button } from "@/components/ui/Button"
@@ -23,12 +22,11 @@ import { cn } from "@/lib/utils"
 const navItems = [
   { href: "/app", label: "Mission Control", icon: LayoutDashboard },
   { href: "/app/map", label: "Map", icon: Map },
+  { href: "/app/copernicus", label: "Copernicus Data", icon: Satellite },
+  { href: "/app/ceccano", label: "Ceccano", icon: Droplet },
   { href: "/app/chat", label: "AI Chat", icon: Bot },
-  { href: "/app/network", label: "Network", icon: Cable },
-  { href: "/app/segment/130", label: "Pipes", icon: GitBranch },
-  { href: "/app/dma/4", label: "DMAs", icon: Layers },
+  { href: "/app/dma/4", label: "Service areas", icon: Layers },
   { href: "/app/incidents", label: "Incidents", icon: AlertTriangle },
-  { href: "/app/source", label: "Sources", icon: Waves },
   { href: "/app/audit", label: "Audit", icon: ShieldCheck },
   { href: "/app/settings", label: "Settings", icon: Settings }
 ]

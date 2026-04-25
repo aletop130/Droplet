@@ -43,7 +43,7 @@ function TankLevel({ tank }: { tank: TankNode }) {
           {tank.level_m.toFixed(1)}m / {tank.max_level_m.toFixed(1)}m
         </div>
       </div>
-      <div className="h-6 overflow-hidden rounded-full border border-[rgba(173,218,255,0.14)] bg-[rgba(4,8,18,0.72)]">
+      <div className="h-6 overflow-hidden rounded-full border border-[var(--glass-stroke)] bg-[rgba(239,247,255,0.86)]">
         <div
           className="h-full rounded-full bg-[linear-gradient(90deg,var(--water-blue),var(--acea-teal))]"
           style={{ width: `${tank.fillLevel}%` }}
@@ -65,7 +65,7 @@ function PipeFlow({ pipe }: { pipe: PipeNode }) {
           {pipe.flowRate.toFixed(1)} / {pipe.maxFlow.toFixed(1)} l/s
         </div>
       </div>
-      <div className="h-3 overflow-hidden rounded-full border border-[rgba(173,218,255,0.14)] bg-[rgba(4,8,18,0.72)]">
+      <div className="h-3 overflow-hidden rounded-full border border-[var(--glass-stroke)] bg-[rgba(239,247,255,0.86)]">
         <div
           className="h-full rounded-full bg-[linear-gradient(90deg,var(--acea-cyan),var(--phi-yellow))]"
           style={{ width: `${pipe.fillPercent}%` }}
@@ -98,7 +98,7 @@ export function NodeDrawer({ selected, onClose }: NodeDrawerProps) {
   const title = selected.kind === "tank" ? selected.item.name : `Segment ${selected.item.id}`
 
   return (
-    <aside className="rounded-[1.6rem] border border-[rgba(173,218,255,0.12)] bg-[rgba(8,18,34,0.74)] p-5 shadow-[0_24px_70px_rgba(0,0,0,0.28)] backdrop-blur-xl">
+    <aside className="rounded-[1.6rem] border border-[var(--glass-stroke)] bg-[rgba(255,255,255,0.82)] p-5 shadow-[0_24px_70px_rgba(8,53,107,0.12)] backdrop-blur-xl">
       <div className="mb-5 flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className={cn("text-data", isTank ? "text-[var(--acea-cyan)]" : "text-[var(--phi-yellow)]")}>

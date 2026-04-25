@@ -1,3 +1,4 @@
+import { DataBootstrapper } from "@/components/shell/DataBootstrapper"
 import { AppShell } from "@/components/shell/AppShell"
 
 export default function PlatformLayout({
@@ -5,5 +6,10 @@ export default function PlatformLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  return <AppShell>{children}</AppShell>
+  return (
+    <AppShell>
+      <DataBootstrapper />
+      {children}
+    </AppShell>
+  )
 }

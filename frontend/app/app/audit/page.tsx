@@ -24,11 +24,11 @@ export default function AuditPage() {
   return (
     <div className="mx-auto grid max-w-[1450px] gap-5">
       <section className="flex flex-wrap items-end justify-between gap-4">
-        <div>
+        <div className="max-w-4xl">
           <div className="text-data text-[var(--acea-cyan)]">Audit</div>
-          <h1 className="text-h1 mt-2">ai_audit_log with expandable traces and operator action slots.</h1>
+          <h1 className="text-page-title mt-2">ai_audit_log with expandable traces and operator action slots.</h1>
         </div>
-        <Button variant="ghost">Esporta CSV</Button>
+        <Button variant="ghost">Export CSV</Button>
       </section>
 
       <div className="flex gap-2">

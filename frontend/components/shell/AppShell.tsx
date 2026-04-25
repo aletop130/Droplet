@@ -1,9 +1,8 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo } from "react"
 import { usePathname, useRouter } from "next/navigation"
 
-import { AgentChat } from "@/components/chat/AgentChat"
 import { SideNav } from "@/components/shell/SideNav"
 import { TopBar } from "@/components/shell/TopBar"
 import { useChatStore } from "@/store/chatStore"
@@ -19,7 +18,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const activeSegment = useSelectionStore((state) => state.activeSegment)
   const activeTank = useSelectionStore((state) => state.activeTank)
   const activeDMA = useSelectionStore((state) => state.activeDMA)
-  const [chatOpen, setChatOpen] = useState(false)
 
   useEffect(() => {
     hydrate()
@@ -53,7 +51,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen">
-      <TopBar user={session.user} onLogout={() => { signOut(); router.replace("/login") }} onToggleChat={() => setChatOpen((value) => !value)} />
+      <TopBar user={session.user} onLogout={() => { signOut(); router.replace("/login") }} />
       <SideNav />
       <main
         className={
@@ -64,7 +62,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       >
         {children}
       </main>
-      <AgentChat open={chatOpen} onClose={() => setChatOpen(false)} />
     </div>
   )
 }
