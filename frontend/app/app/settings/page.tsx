@@ -1,70 +1,46 @@
 "use client"
 
+import { useRouter } from "next/navigation"
+
+import { Button } from "@/components/ui/Button"
 import { GlassCard } from "@/components/ui/GlassCard"
-import { Settings, Shield, User } from "lucide-react"
+import { clearSession, readSession } from "@/lib/mockAuth"
 
 export default function SettingsPage() {
+  const router = useRouter()
+  const session = readSession()
+
   return (
-    <div className="mx-auto grid max-w-3xl gap-4">
-      <section className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="font-[var(--font-jetbrains)] text-xs uppercase tracking-[0.18em] text-[var(--acea-cyan)]">
-            Operator
-          </p>
-          <h1 className="mt-2 font-[var(--font-unbounded)] text-3xl font-semibold tracking-normal">
-            Settings & Preferences
-          </h1>
-        </div>
+    <div className="mx-auto grid max-w-4xl gap-5">
+      <section>
+        <div className="text-data text-[var(--acea-cyan)]">Impostazioni</div>
+        <h1 className="text-h1 mt-2">Thresholds, session envelope and read-only v1 controls.</h1>
       </section>
 
-      <GlassCard className="p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <User className="h-5 w-5 text-[var(--acea-cyan)]" />
-          <h2 className="font-[var(--font-unbounded)] text-lg">Profile</h2>
-        </div>
-        <div className="space-y-3 text-sm">
-          <div>
-            <div className="text-xs text-[var(--text-lo)]">Username</div>
-            <div className="font-[var(--font-jetbrains)] text-[var(--text-md)]">operator</div>
+      <GlassCard className="rounded-[1.8rem] p-5">
+        <div className="grid gap-3">
+          <div className="rounded-[1.4rem] border border-[rgba(173,218,255,0.1)] bg-[rgba(255,255,255,0.03)] p-4">
+            <div className="text-data text-[var(--text-lo)]">PHI thresholds</div>
+            <div className="mt-1 text-sm text-[var(--text-md)]">Read-only v1 from backend configuration.</div>
           </div>
-          <div>
-            <div className="text-xs text-[var(--text-lo)]">Session</div>
-            <div className="font-[var(--font-jetbrains)] text-[var(--text-md)]">Active</div>
+          <div className="rounded-[1.4rem] border border-[rgba(173,218,255,0.1)] bg-[rgba(255,255,255,0.03)] p-4">
+            <div className="text-data text-[var(--text-lo)]">Mass-balance residual threshold</div>
+            <div className="mt-1 text-sm text-[var(--text-md)]">Watch {" > "} 12% · Alert {" > "} 25%</div>
           </div>
-        </div>
-      </GlassCard>
-
-      <GlassCard className="p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <Shield className="h-5 w-5 text-[var(--acea-cyan)]" />
-          <h2 className="font-[var(--font-unbounded)] text-lg">Security</h2>
-        </div>
-        <div className="space-y-3 text-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-[var(--text-md)]">AI Act Art. 13 Compliance</span>
-            <span className="text-xs text-[var(--phi-green)]">✓ Enabled</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-[var(--text-md)]">Audit Logging</span>
-            <span className="text-xs text-[var(--phi-green)]">✓ Active</span>
+          <div className="rounded-[1.4rem] border border-[rgba(173,218,255,0.1)] bg-[rgba(255,255,255,0.03)] p-4">
+            <div className="text-data text-[var(--text-lo)]">Session info</div>
+            <div className="mt-1 text-sm text-[var(--text-md)]">{session?.user ?? "operator"} · scadenza {session ? new Date(session.exp).toLocaleString("it-IT") : "n/a"}</div>
           </div>
         </div>
-      </GlassCard>
-
-      <GlassCard className="p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <Settings className="h-5 w-5 text-[var(--acea-cyan)]" />
-          <h2 className="font-[var(--font-unbounded)] text-lg">System</h2>
-        </div>
-        <div className="space-y-3 text-sm">
-          <div>
-            <div className="text-xs text-[var(--text-lo)]">Backend API</div>
-            <div className="font-[var(--font-jetbrains)] text-[var(--acea-cyan)]">https://Alessandro0709-Droplet.hf.space</div>
-          </div>
-          <div>
-            <div className="text-xs text-[var(--text-lo)]">Pilot Region</div>
-            <div className="font-[var(--font-jetbrains)] text-[var(--text-md)]">Frosinone, Lazio (IT)</div>
-          </div>
+        <div className="mt-4">
+          <Button
+            onClick={() => {
+              clearSession()
+              router.replace("/login")
+            }}
+          >
+            Esci
+          </Button>
         </div>
       </GlassCard>
     </div>

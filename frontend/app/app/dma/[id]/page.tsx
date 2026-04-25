@@ -1,161 +1,136 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useParams } from "next/navigation"
-import { ArrowLeft, Droplets, Info, PieChart } from "lucide-react"
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis
+} from "recharts"
 
+import { DataBadge } from "@/components/ui/DataBadge"
 import { GlassCard } from "@/components/ui/GlassCard"
-import { API_BASE } from "@/lib/api"
-import { ExplainStream } from "@/components/explain/ExplainStream"
+import { getDMA, getDMABalance, getSegments, getTanks } from "@/lib/api"
+import { useSelectionStore } from "@/store/selectionStore"
+import type { DMABalance, DMAFeature, SegmentFeature, TankFeature } from "@/types/domain"
 
-type DMABalance = {
-  dma_id: number
-  month: string
-  system_input_m3: number
-  authorised_m3: number
-  apparent_losses_m3: number
-  real_losses_m3: number
-  nrw_pct: number
-  pdf_status: string
-}
-
-export default function DMADetailPage() {
-  const params = useParams()
-  const dmaId = Number(params.id)
-  const [data, setData] = useState<DMABalance | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [explainOpen, setExplainOpen] = useState(false)
+export default function DmaPage() {
+  const params = useParams<{ id: string }>()
+  const id = Number(params.id)
+  const [dma, setDma] = useState<DMAFeature | null>(null)
+  const [balance, setBalance] = useState<DMABalance | null>(null)
+  const [segments, setSegments] = useState<SegmentFeature[]>([])
+  const [tanks, setTanks] = useState<TankFeature[]>([])
+  const setActiveDMA = useSelectionStore((state) => state.setActiveDMA)
 
   useEffect(() => {
-    if (!dmaId) return
-    setLoading(true)
-    fetch(`${API_BASE}/api/dmas/${dmaId}/balance`, {
-      headers: { Accept: "application/json" },
-      cache: "no-store"
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error(`DMA ${dmaId} not found`)
-        return res.json()
-      })
-      .then(setData)
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false))
-  }, [dmaId])
-
-  if (loading) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <span className="text-sm text-[var(--text-lo)]">Loading DMA #{dmaId}...</span>
-      </div>
+    if (!Number.isFinite(id)) return
+    setActiveDMA(id)
+    Promise.all([getDMA(id), getDMABalance(id), getSegments(undefined, id), getTanks(id)]).then(
+      ([dmaEntity, balancePayload, segmentCollection, tankCollection]) => {
+        setDma(dmaEntity)
+        setBalance(balancePayload)
+        setSegments(segmentCollection.features)
+        setTanks(tankCollection.features)
+      }
     )
-  }
+  }, [id, setActiveDMA])
 
-  if (error || !data) {
-    return (
-      <div className="flex h-64 items-center justify-center">
-        <span className="text-sm text-[var(--phi-red)]">{error || "DMA not found"}</span>
-      </div>
-    )
-  }
-
-  const nrwColor = data.nrw_pct > 50 ? "var(--phi-red)" : data.nrw_pct > 30 ? "var(--phi-yellow)" : "var(--phi-green)"
-  const inputVol = data.system_input_m3
-  const authorizedVol = data.authorised_m3
-  const apparentVol = data.apparent_losses_m3
-  const realVol = data.real_losses_m3
+  const waterfall = useMemo(() => {
+    if (!balance) return []
+    return [
+      { label: "System input", value: balance.system_input_m3 },
+      { label: "Authorised", value: balance.authorised_m3 },
+      { label: "Apparent losses", value: balance.apparent_losses_m3 },
+      { label: "Real losses", value: balance.real_losses_m3 }
+    ]
+  }, [balance])
 
   return (
-    <div className="mx-auto grid max-w-5xl gap-4">
-      <div className="flex items-center gap-4">
-        <a
-          href="/app/map"
-          className="flex h-8 w-8 items-center justify-center rounded border border-[var(--glass-stroke)] text-[var(--text-lo)] hover:border-[var(--acea-cyan)]"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </a>
+    <div className="mx-auto grid max-w-[1450px] gap-5">
+      <section className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="font-[var(--font-jetbrains)] text-xs uppercase tracking-[0.18em] text-[var(--acea-cyan)]">
-            DMA Detail
-          </p>
-          <h1 className="font-[var(--font-unbounded)] text-2xl font-semibold">
-            DMA #{dmaId} <span style={{ color: nrwColor }}>{data.nrw_pct}% NRW</span>
-          </h1>
+          <div className="text-data text-[var(--acea-cyan)]">DMA {id}</div>
+          <h1 className="text-h1 mt-2">{dma?.name ?? "Loading..."}</h1>
         </div>
-        <button
-          onClick={() => setExplainOpen(true)}
-          className="ml-auto rounded border border-[var(--glass-stroke)] px-3 py-1.5 text-xs text-[var(--acea-cyan)] hover:border-[var(--acea-cyan)]"
-        >
-          <Info className="mr-1 inline h-3 w-3" />
-          AI Explain
-        </button>
-      </div>
+        <div className="flex flex-wrap gap-2">
+          <DataBadge label="population" value={dma?.population?.toLocaleString() ?? "n/a"} />
+          <DataBadge label="segments" value={String(segments.length)} tone="neutral" />
+        </div>
+      </section>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <GlassCard className="p-4">
-          <h2 className="mb-3 flex items-center gap-2 font-[var(--font-unbounded)] text-sm">
-            <Droplets className="h-4 w-4 text-[var(--acea-cyan)]" />
-            IWA Water Balance ({data.month})
-          </h2>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[var(--text-lo)]">System Input</span>
-              <span className="font-[var(--font-jetbrains)] text-[var(--acea-cyan)]">
-                {inputVol.toLocaleString()} m³
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-[var(--text-lo)]">Authorised</span>
-              <span className="font-[var(--font-jetbrains)] text-[var(--text-md)]">
-                {authorizedVol.toLocaleString()} m³
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-[var(--text-lo)]">Apparent Losses</span>
-              <span className="font-[var(--font-jetbrains)] text-[var(--phi-orange)]">
-                {apparentVol.toLocaleString()} m³
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-[var(--text-lo)]">Real Losses (ILM)</span>
-              <span className="font-[var(--font-jetbrains)] text-[var(--phi-red)]">
-                {realVol.toLocaleString()} m³
-              </span>
-            </div>
+      <section className="grid gap-4 xl:grid-cols-[1fr_1fr]">
+        <GlassCard className="rounded-[1.8rem] p-5">
+          <div className="mb-4 text-sm text-[var(--text-hi)]">IWA Water Balance</div>
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={waterfall}>
+                <CartesianGrid stroke="rgba(173,218,255,0.08)" vertical={false} />
+                <XAxis dataKey="label" tick={{ fill: "#6983A3", fontSize: 11 }} />
+                <YAxis tick={{ fill: "#6983A3", fontSize: 11 }} />
+                <Tooltip />
+                <Bar dataKey="value" fill="#4bd6ff" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </GlassCard>
 
-        <GlassCard className="p-4">
-          <h2 className="mb-3 flex items-center gap-2 font-[var(--font-unbounded)] text-sm">
-            <PieChart className="h-4 w-4 text-[var(--acea-cyan)]" />
-            NRW Breakdown
-          </h2>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[var(--text-lo)]">NRW %</span>
-              <span className="font-[var(--font-unbounded)] text-xl" style={{ color: nrwColor }}>
-                {data.nrw_pct}%
-              </span>
+        <GlassCard className="rounded-[1.8rem] p-5">
+          <div className="mb-4 text-sm text-[var(--text-hi)]">KPI cards</div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-[1.4rem] border border-[rgba(173,218,255,0.1)] bg-[rgba(255,255,255,0.03)] p-4">
+              <div className="text-data text-[var(--text-lo)]">NRW%</div>
+              <div className="mt-1 text-[2rem] font-semibold text-[var(--acea-ice)]">{balance?.nrw_pct ?? "n/a"}</div>
             </div>
-            <div>
-              <div className="mb-1 text-xs text-[var(--text-lo)]">IWA Performance</div>
-                <div className="h-3 w-full overflow-hidden rounded-full bg-[var(--bg-2)]">
-                <div
-                  className="h-full bg-gradient-to-r from-[var(--phi-green)] to-[var(--phi-red)]"
-                  style={{ width: `${data.nrw_pct}%` }}
-                />
+            <div className="rounded-[1.4rem] border border-[rgba(173,218,255,0.1)] bg-[rgba(255,255,255,0.03)] p-4">
+              <div className="text-data text-[var(--text-lo)]">ILI</div>
+              <div className="mt-1 text-[2rem] font-semibold text-[var(--acea-ice)]">2.8</div>
+            </div>
+            <div className="rounded-[1.4rem] border border-[rgba(173,218,255,0.1)] bg-[rgba(255,255,255,0.03)] p-4">
+              <div className="text-data text-[var(--text-lo)]">UARL</div>
+              <div className="mt-1 text-[2rem] font-semibold text-[var(--acea-ice)]">1.9</div>
+            </div>
+            <div className="rounded-[1.4rem] border border-[rgba(173,218,255,0.1)] bg-[rgba(255,255,255,0.03)] p-4">
+              <div className="text-data text-[var(--text-lo)]">CARL</div>
+              <div className="mt-1 text-[2rem] font-semibold text-[var(--acea-ice)]">5.4</div>
+            </div>
+          </div>
+        </GlassCard>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-[0.8fr_1.2fr]">
+        <GlassCard className="rounded-[1.8rem] p-5">
+          <div className="mb-4 text-sm text-[var(--text-hi)]">Tank ensemble</div>
+          <div className="grid gap-2">
+            {tanks.map((tank) => (
+              <div key={tank.properties.id} className="rounded-[1.4rem] border border-[rgba(173,218,255,0.1)] bg-[rgba(255,255,255,0.03)] p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm text-[var(--text-hi)]">{tank.properties.name}</div>
+                  <DataBadge label="headroom" value={`${tank.properties.headroom_pct}%`} tone="cyan" />
+                </div>
               </div>
-            </div>
+            ))}
           </div>
         </GlassCard>
-      </div>
 
-      <ExplainStream
-        entityType="dma"
-        entityId={dmaId}
-        open={explainOpen}
-        onClose={() => setExplainOpen(false)}
-      />
+        <GlassCard className="rounded-[1.8rem] p-5">
+          <div className="mb-4 text-sm text-[var(--text-hi)]">Segments table</div>
+          <div className="grid gap-2">
+            {segments.slice(0, 12).map((segment) => (
+              <div key={segment.properties.id} className="grid grid-cols-[90px_1fr_120px_120px] items-center gap-3 rounded-[1.4rem] border border-[rgba(173,218,255,0.1)] bg-[rgba(255,255,255,0.03)] p-3 text-sm text-[var(--text-md)]">
+                <div className="text-[var(--text-hi)]">#{segment.properties.id}</div>
+                <div>{segment.properties.material}</div>
+                <div>{segment.properties.diameter_mm} mm</div>
+                <div>PHI {segment.properties.phi}</div>
+              </div>
+            ))}
+          </div>
+        </GlassCard>
+      </section>
     </div>
   )
 }

@@ -1,210 +1,105 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { AlertTriangle, Clock, Search, User, XCircle } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
 
 import { GlassCard } from "@/components/ui/GlassCard"
 import { Input } from "@/components/ui/Input"
-import { getIncidents, type Incident } from "@/lib/incidents"
+import { getControlRecs, getIncidents } from "@/lib/api"
+import { useAlertsStore } from "@/store/alertsStore"
+import type { ControlRecommendation, Incident } from "@/types/domain"
 
 export default function IncidentsPage() {
   const [incidents, setIncidents] = useState<Incident[]>([])
-  const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<"all" | "open" | "investigating" | "resolved">("all")
-  const [severity, setSeverity] = useState<number | null>(null)
   const [selected, setSelected] = useState<Incident | null>(null)
+  const [recs, setRecs] = useState<ControlRecommendation[]>([])
+  const [tab, setTab] = useState<"all" | "open" | "investigating" | "resolved">("all")
+  const [search, setSearch] = useState("")
+  const liveEvents = useAlertsStore((state) => state.events)
 
   useEffect(() => {
-    setLoading(true)
-    getIncidents(severity ?? undefined, filter === "all" ? undefined : filter)
-      .then((data) => setIncidents(data.items))
-      .catch((err) => console.error(err))
-      .finally(() => setLoading(false))
-  }, [filter, severity])
+    getIncidents().then((payload) => setIncidents(payload.items))
+    getControlRecs().then(setRecs)
+  }, [])
 
-  const severityLabels = { 1: "low", 2: "medium", 3: "high", 4: "critical" }
-  const statusColors = {
-    open: "var(--phi-red)",
-    investigating: "var(--phi-yellow)",
-    resolved: "var(--phi-green)"
-  }
+  const filtered = useMemo(() => {
+    return incidents.filter((incident) => {
+      if (tab !== "all" && incident.status !== tab) return false
+      if (search && !`${incident.title} ${incident.entity_type} ${incident.entity_id}`.toLowerCase().includes(search.toLowerCase())) return false
+      return true
+    })
+  }, [incidents, search, tab])
 
   return (
-    <div className="mx-auto grid max-w-7xl gap-4">
+    <div className="mx-auto grid max-w-[1450px] gap-5">
       <section className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="font-[var(--font-jetbrains)] text-xs uppercase tracking-[0.18em] text-[var(--acea-cyan)]">
-            Incidents
-          </p>
-          <h1 className="mt-2 font-[var(--font-unbounded)] text-3xl font-semibold tracking-normal">
-            Anomaly detection events
-          </h1>
+          <div className="text-data text-[var(--acea-cyan)]">Incidenti</div>
+          <h1 className="text-h1 mt-2">Triage queue con spiegazioni e control rec tracciate.</h1>
         </div>
       </section>
 
       <div className="flex flex-wrap gap-2">
-        {(["all", "open", "investigating", "resolved"] as const).map((f) => (
+        {(["all", "open", "investigating", "resolved"] as const).map((item) => (
           <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`rounded border px-3 py-1.5 text-xs font-[var(--font-jetbrains)] uppercase transition ${
-              filter === f
-                ? "border-[var(--acea-cyan)] bg-[var(--acea-cyan)]/10 text-[var(--acea-cyan)]"
-                : "border-[var(--glass-stroke)] text-[var(--text-lo)] hover:border-[var(--text-md)]"
-            }`}
+            key={item}
+            type="button"
+            onClick={() => setTab(item)}
+            className={`rounded-full border px-3 py-1 text-data ${tab === item ? "border-[rgba(75,214,255,0.24)] text-[var(--acea-cyan)]" : "border-[rgba(173,218,255,0.12)] text-[var(--text-lo)]"}`}
           >
-            {f}
+            {item}
           </button>
         ))}
-        <div className="ml-auto flex items-center gap-2">
-          <Input
-            type="number"
-            placeholder="Severity ≥"
-            className="w-24"
-            value={severity ?? ""}
-            onChange={(e) => setSeverity(e.target.value ? Number(e.target.value) : null)}
-          />
+        <div className="ml-auto w-full max-w-xs">
+          <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Filtra per entity o titolo" />
         </div>
       </div>
 
-      {loading ? (
-        <div className="py-12 text-center text-sm text-[var(--text-lo)]">Loading incidents...</div>
-      ) : incidents.length === 0 ? (
-        <div className="py-12 text-center text-sm text-[var(--text-lo)]">No incidents found</div>
-      ) : (
-        <div className="grid gap-3">
-          {incidents.map((incident) => (
-            <GlassCard
+      <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="grid gap-2">
+          {filtered.map((incident, index) => (
+            <button
               key={incident.id}
-              className="cursor-pointer p-4 transition hover:border-[var(--acea-cyan)]"
+              type="button"
               onClick={() => setSelected(incident)}
+              className={`rounded-[1.6rem] border p-4 text-left transition ${
+                index === 0 && liveEvents[0]?.entity_id === incident.entity_id
+                  ? "border-[rgba(75,214,255,0.28)] bg-[rgba(75,214,255,0.08)]"
+                  : "border-[rgba(173,218,255,0.12)] bg-[rgba(255,255,255,0.03)]"
+              }`}
             >
-              <div className="mb-2 flex items-start justify-between">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle
-                    className="h-4 w-4"
-                    style={{ color: severityLabels[incident.severity as keyof typeof severityLabels] === "critical" ? "var(--phi-red)" : severityLabels[incident.severity as keyof typeof severityLabels] === "high" ? "var(--phi-orange)" : "var(--phi-yellow)" }}
-                  />
-                  <span className="font-[var(--font-jetbrains)] text-xs text-[var(--text-lo)]">
-                    #{incident.id}
-                  </span>
-                </div>
-                <span
-                  className="font-[var(--font-unbounded)] text-xs uppercase"
-                  style={{ color: statusColors[incident.status] }}
-                >
-                  {incident.status}
-                </span>
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm text-[var(--text-hi)]">{incident.title}</div>
+                <div className="text-data text-[var(--text-lo)]">{incident.status}</div>
               </div>
-              <h3 className="mb-2 font-[var(--font-unbounded)] text-sm">{incident.title}</h3>
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--text-lo)]">
-                <span className="font-[var(--font-jetbrains)]">
-                  {incident.entity_type} #{incident.entity_id}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  {new Date(incident.updated_at).toLocaleString()}
-                </span>
-                {incident.assigned_to && (
-                  <span className="flex items-center gap-1">
-                    <User className="h-3 w-3" />
-                    {incident.assigned_to}
-                  </span>
-                )}
-              </div>
-            </GlassCard>
+              <div className="mt-1 text-sm text-[var(--text-md)]">{incident.pre_explanation}</div>
+            </button>
           ))}
         </div>
-      )}
 
-      {selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <GlassCard className="mx-4 max-h-[80vh] w-full max-w-2xl overflow-y-auto p-6">
-            <div className="mb-4 flex items-start justify-between">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-[var(--phi-red)]" />
-                <span className="font-[var(--font-jetbrains)] text-xs text-[var(--text-lo)]">
-                  Incident #{selected.id}
-                </span>
-              </div>
-              <button
-                onClick={() => setSelected(null)}
-                className="rounded p-1 text-[var(--text-lo)] hover:bg-[var(--bg-2)]"
-              >
-                <XCircle className="h-5 w-5" />
-              </button>
-            </div>
-            <h2 className="mb-4 font-[var(--font-unbounded)] text-xl">{selected.title}</h2>
-            <div className="mb-4 grid grid-cols-2 gap-4 text-sm">
+        <GlassCard className="rounded-[1.8rem] p-5">
+          {selected ? (
+            <div className="grid gap-4">
               <div>
-                <div className="text-xs text-[var(--text-lo)]">Status</div>
-                <div
-                  className="font-[var(--font-unbounded)]"
-                  style={{ color: statusColors[selected.status] }}
-                >
-                  {selected.status.toUpperCase()}
-                </div>
+                <div className="text-sm text-[var(--text-hi)]">{selected.title}</div>
+                <div className="mt-1 text-data text-[var(--text-lo)]">{selected.entity_type} {selected.entity_id}</div>
               </div>
-              <div>
-                <div className="text-xs text-[var(--text-lo)]">Severity</div>
-                <div className="font-[var(--font-jetbrains)]">
-                  {severityLabels[selected.severity as keyof typeof severityLabels]} ({selected.severity})
-                </div>
+              <div className="rounded-[1.4rem] border border-[rgba(173,218,255,0.1)] bg-[rgba(255,255,255,0.03)] p-4 text-sm text-[var(--text-md)]">
+                {selected.pre_explanation}
               </div>
-              <div>
-                <div className="text-xs text-[var(--text-lo)]">Entity</div>
-                <div className="font-[var(--font-jetbrains)]">
-                  {selected.entity_type} #{selected.entity_id}
-                </div>
-              </div>
-              <div>
-                <div className="text-xs text-[var(--text-lo)]">Updated</div>
-                <div className="font-[var(--font-jetbrains)]">
-                  {new Date(selected.updated_at).toLocaleString()}
-                </div>
+              <div className="grid gap-2">
+                {recs.filter((rec) => rec.entity_id === selected.entity_id).slice(0, 3).map((rec) => (
+                  <div key={rec.id} className="rounded-[1.4rem] border border-[rgba(173,218,255,0.1)] bg-[rgba(255,255,255,0.03)] p-3">
+                    <div className="text-sm text-[var(--text-hi)]">{rec.parameter}</div>
+                    <div className="mt-1 text-sm text-[var(--text-md)]">{rec.rationale}</div>
+                  </div>
+                ))}
               </div>
             </div>
-            {selected.pre_explanation && (
-              <div className="mb-4">
-                <div className="mb-1 text-xs text-[var(--text-lo)]">AI Pre-explanation</div>
-                <div className="rounded border border-[var(--glass-stroke)] p-3 text-sm text-[var(--text-md)]">
-                  {selected.pre_explanation}
-                </div>
-              </div>
-            )}
-            {selected.detector_events && selected.detector_events.length > 0 && (
-              <div className="mb-4">
-                <div className="mb-1 text-xs text-[var(--text-lo)]">Detector Events</div>
-                <div className="flex flex-wrap gap-2">
-                  {selected.detector_events.map((event, i) => (
-                    <span
-                      key={i}
-                      className="rounded bg-[var(--bg-2)] px-2 py-1 text-xs font-[var(--font-jetbrains)]"
-                    >
-                      {event}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-            {selected.tags && selected.tags.length > 0 && (
-              <div>
-                <div className="mb-1 text-xs text-[var(--text-lo)]">Tags</div>
-                <div className="flex flex-wrap gap-2">
-                  {selected.tags.map((tag, i) => (
-                    <span
-                      key={i}
-                      className="rounded border border-[var(--glass-stroke)] px-2 py-1 text-xs font-[var(--font-jetbrains)] text-[var(--acea-cyan)]"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </GlassCard>
-        </div>
-      )}
+          ) : (
+            <div className="text-sm text-[var(--text-lo)]">Seleziona un incidente per aprire il pannello laterale.</div>
+          )}
+        </GlassCard>
+      </section>
     </div>
   )
 }

@@ -1,35 +1,49 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useEffect, useMemo, useState } from "react"
+import { usePathname, useRouter } from "next/navigation"
 
 import { AgentChat } from "@/components/chat/AgentChat"
 import { SideNav } from "@/components/shell/SideNav"
 import { TopBar } from "@/components/shell/TopBar"
-import { clearSession, readSession, type DropletSession } from "@/lib/mockAuth"
+import { useChatStore } from "@/store/chatStore"
+import { useSelectionStore } from "@/store/selectionStore"
+import { useSessionStore } from "@/store/sessionStore"
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter()
-  const [session, setSession] = useState<DropletSession | null>(null)
-  const [checked, setChecked] = useState(false)
+  const pathname = usePathname()
+  const { session, hydrate, signOut } = useSessionStore()
+  const setActiveRoute = useSelectionStore((state) => state.setActiveRoute)
+  const setPageContext = useChatStore((state) => state.setPageContext)
+  const activeSegment = useSelectionStore((state) => state.activeSegment)
+  const activeTank = useSelectionStore((state) => state.activeTank)
+  const activeDMA = useSelectionStore((state) => state.activeDMA)
   const [chatOpen, setChatOpen] = useState(false)
 
   useEffect(() => {
-    const activeSession = readSession()
-    if (!activeSession) {
-      router.replace("/login")
-      return
+    hydrate()
+  }, [hydrate])
+
+  useEffect(() => {
+    setActiveRoute(pathname)
+    const entityType = activeSegment ? "segment" : activeTank ? "tank" : activeDMA ? "dma" : null
+    const entityId = activeSegment ?? activeTank ?? activeDMA ?? null
+    setPageContext({ route: pathname, entity_type: entityType, entity_id: entityId })
+  }, [activeDMA, activeSegment, activeTank, pathname, setActiveRoute, setPageContext])
+
+  const isMapRoute = useMemo(() => pathname.startsWith("/app/map"), [pathname])
+
+  useEffect(() => {
+    if (session === null) {
+      const timer = window.setTimeout(() => {
+        router.replace("/login")
+      }, 120)
+      return () => window.clearTimeout(timer)
     }
-    setSession(activeSession)
-    setChecked(true)
-  }, [router])
+  }, [router, session])
 
-  function logout() {
-    clearSession()
-    router.replace("/login")
-  }
-
-  if (!checked || !session) {
+  if (!session) {
     return (
       <main className="grid min-h-screen place-items-center text-sm text-[var(--text-md)]">
         Checking operator session...
@@ -38,12 +52,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex min-h-screen overflow-hidden">
+    <div className="min-h-screen">
+      <TopBar user={session.user} onLogout={() => { signOut(); router.replace("/login") }} onToggleChat={() => setChatOpen((value) => !value)} />
       <SideNav />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <TopBar user={session.user} onLogout={logout} onToggleChat={() => setChatOpen((open) => !open)} />
-        <main className="min-h-0 flex-1 overflow-y-auto p-4 lg:p-6">{children}</main>
-      </div>
+      <main
+        className={
+          isMapRoute
+            ? "relative min-h-screen"
+            : "relative min-h-screen px-4 pb-8 pt-24 lg:pl-[17.5rem] lg:pr-6"
+        }
+      >
+        {children}
+      </main>
       <AgentChat open={chatOpen} onClose={() => setChatOpen(false)} />
     </div>
   )
