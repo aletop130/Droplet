@@ -40,8 +40,8 @@ export function SideNav() {
         collapsed ? "w-16" : "w-60"
       )}
     >
-      <div className="pointer-events-auto glass-panel flex h-full flex-col rounded-[1.8rem] p-3">
-        <div className="mb-3 flex items-center justify-between">
+      <div className={cn("pointer-events-auto glass-panel flex h-full flex-col rounded-[1.8rem] p-3", collapsed && "items-center px-2")}>
+        <div className={cn("mb-3 flex items-center justify-between", collapsed && "justify-center")}>
           {!collapsed ? <div className="text-data text-[var(--text-lo)]">Navigation</div> : <div className="font-semibold text-[var(--text-lo)]" />}
           <button
             type="button"
@@ -52,7 +52,7 @@ export function SideNav() {
           </button>
         </div>
 
-        <nav className="grid gap-2">
+        <nav className={cn("grid gap-2", collapsed && "justify-items-center")}>
           {navItems.map((item) => {
             const Icon = item.icon
             const active = item.href === "/app" ? pathname === item.href : pathname.startsWith(item.href.replace(/\/\d+$/, ""))
@@ -62,12 +62,14 @@ export function SideNav() {
                 href={item.href}
                 className={cn(
                   "group relative flex h-12 items-center gap-3 rounded-2xl border border-transparent px-3 text-sm text-[var(--text-md)] transition hover:border-[rgba(75,214,255,0.12)] hover:bg-[rgba(255,255,255,0.03)] hover:text-[var(--text-hi)]",
+                  collapsed && "w-12 justify-center gap-0 px-0",
                   active && "bg-[rgba(75,214,255,0.08)] text-[var(--acea-ice)]"
                 )}
               >
                 <span
                   className={cn(
                     "absolute bottom-2 left-0 top-2 w-[3px] rounded-full bg-transparent",
+                    collapsed && "-left-2",
                     active && "bg-[linear-gradient(180deg,var(--acea-cyan),var(--acea-teal))]"
                   )}
                 />

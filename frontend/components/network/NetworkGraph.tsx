@@ -29,7 +29,6 @@ type DragState = {
   view: ViewState
   moved: boolean
   frame: number | null
-  target: SelectedNetworkNode
 }
 
 const CANVAS_WIDTH = 1180
@@ -238,15 +237,7 @@ export function NetworkGraph({ embedded = false }: NetworkGraphProps) {
   }
 
   function beginPan(event: PointerEvent<SVGSVGElement>) {
-    const nodeElement = (event.target as Element).closest("[data-network-node='true']")
-    const kind = nodeElement?.getAttribute("data-network-kind")
-    const id = Number(nodeElement?.getAttribute("data-network-id"))
-    const target =
-      kind === "pipe"
-        ? projected.pipes.find((pipe) => pipe.id === id)
-        : kind === "tank"
-          ? projected.tanks.find((tank) => tank.id === id)
-          : null
+    if ((event.target as Element).closest("[data-network-node='true']")) return
 
     dragRef.current = {
       pointerId: event.pointerId,
@@ -256,8 +247,7 @@ export function NetworkGraph({ embedded = false }: NetworkGraphProps) {
       lastY: event.clientY,
       view: viewRef.current,
       moved: false,
-      frame: null,
-      target: target ? { kind: kind as "pipe" | "tank", item: target } as SelectedNetworkNode : null
+      frame: null
     }
     event.currentTarget.setPointerCapture(event.pointerId)
   }
@@ -288,9 +278,6 @@ export function NetworkGraph({ embedded = false }: NetworkGraphProps) {
     if (drag?.pointerId === event.pointerId) {
       if (drag.frame != null) {
         window.cancelAnimationFrame(drag.frame)
-      }
-      if (!drag.moved && drag.target) {
-        setSelected(drag.target)
       }
       dragRef.current = null
     }
@@ -377,7 +364,7 @@ export function NetworkGraph({ embedded = false }: NetworkGraphProps) {
                 {areas.find((area) => area.id === selectedAreaId)?.name ?? graph?.area?.name ?? "Ciociaria network"}
               </div>
               <div className="mt-1 text-data text-[var(--text-lo)]">
-                Drag to pan · wheel zooms on cursor
+                Drag empty space to pan - wheel zooms on cursor
               </div>
             </div>
             {loading || !graph ? (
@@ -437,6 +424,7 @@ export function NetworkGraph({ embedded = false }: NetworkGraphProps) {
                         data-network-id={pipe.id}
                         onPointerEnter={() => setHovered(`pipe:${pipe.id}`)}
                         onPointerLeave={() => setHovered(null)}
+                        onClick={() => setSelected({ kind: "pipe", item: pipe })}
                       />
                     </g>
                   )
@@ -458,6 +446,7 @@ export function NetworkGraph({ embedded = false }: NetworkGraphProps) {
                       data-network-id={tank.id}
                       onPointerEnter={() => setHovered(`tank:${tank.id}`)}
                       onPointerLeave={() => setHovered(null)}
+                      onClick={() => setSelected({ kind: "tank", item: tank })}
                     >
                       <circle r={radius + 8} fill="rgba(75,214,255,0.08)" opacity={active || hovered === `tank:${tank.id}` ? 1 : 0} />
                       <clipPath id={`tank-clip-${tank.id}`}>

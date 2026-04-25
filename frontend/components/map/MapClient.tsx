@@ -5,12 +5,9 @@ import { useState } from "react"
 import { GitBranch, Map as MapIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { NetworkGraph } from "@/components/network/NetworkGraph"
 
 const DeckMap = dynamic(() => import("@/components/map/DeckMap").then((module) => module.DeckMap), {
-  ssr: false
-})
-
-const NetworkGraph = dynamic(() => import("@/components/network/NetworkGraph").then((module) => module.NetworkGraph), {
   ssr: false
 })
 
