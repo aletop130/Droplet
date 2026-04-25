@@ -58,16 +58,16 @@ export function getSegments(bbox?: string, dma?: number) {
   return fetchJson<SegmentFeatureCollection>("/api/segments", undefined, { bbox, dma })
 }
 
-export function getSegment(id: number) {
-  return fetchJson<SegmentDetail>(`/api/segments/${id}`)
+export function getSegment(id: number, init?: RequestInit) {
+  return fetchJson<SegmentDetail>(`/api/segments/${id}`, init)
 }
 
 export function getTanks(dma?: number) {
   return fetchJson<TankFeatureCollection>("/api/tanks", undefined, { dma })
 }
 
-export function getTank(id: number) {
-  return fetchJson<TankDetail>(`/api/tanks/${id}`)
+export function getTank(id: number, init?: RequestInit) {
+  return fetchJson<TankDetail>(`/api/tanks/${id}`, init)
 }
 
 export async function getDMAs() {
