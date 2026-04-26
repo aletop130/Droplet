@@ -21,7 +21,7 @@ function incidentExplanation(incident: Incident) {
     return `Storage behavior is unstable around tank ${incident.entity_id}; check headroom, inflow continuity and downstream demand before changing controls.`
   }
 
-  if (incident.title.toLowerCase().includes("perdita")) {
+  if (incident.title.toLowerCase().includes("perdita") || incident.title.toLowerCase().includes("leak")) {
     return `Leak likelihood is elevated around ${incident.entity_type} ${incident.entity_id}; combine pressure drop, night flow and nearby work orders.`
   }
 

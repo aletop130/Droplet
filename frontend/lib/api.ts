@@ -239,24 +239,24 @@ const fallbackCeccanoDistricts: CeccanoDistrict[] = Array.from({ length: 15 }, (
   const id = `CED-${String(n).padStart(2, "0")}`
   const critical: Partial<CeccanoDistrict> =
     id === "CED-04"
-      ? { loss_pct: 68, pressure_actual_bar: 1.8, loss_day_pct: 45, status: "critical", issue: "Perdite elevate e corrosione su 1500 m di rete" }
+      ? { loss_pct: 68, pressure_actual_bar: 1.8, loss_day_pct: 45, status: "critical", issue: "High leakage and corrosion across 1500 m of network" }
       : id === "CED-07"
-        ? { loss_pct: 52, pressure_actual_bar: 2.1, loss_day_pct: 38, status: "emergency", issue: "Condotte rotte per circa 200 m" }
+        ? { loss_pct: 52, pressure_actual_bar: 2.1, loss_day_pct: 38, status: "emergency", issue: "Broken pipes across roughly 200 m" }
         : id === "CED-12"
-          ? { loss_pct: 74, pressure_actual_bar: 1.2, loss_day_pct: 52, status: "critical", issue: "Rottura pipe con pressione fuori soglia" }
+          ? { loss_pct: 74, pressure_actual_bar: 1.2, loss_day_pct: 52, status: "critical", issue: "Pipe break with pressure outside threshold" }
           : id === "CED-15"
-            ? { loss_pct: 89, pressure_actual_bar: 0.8, loss_day_pct: 28, status: "emergency", issue: "Zona est con perdite diffuse e stabilita geologica debole" }
+            ? { loss_pct: 89, pressure_actual_bar: 0.8, loss_day_pct: 28, status: "emergency", issue: "East zone with widespread leaks and weak geological stability" }
             : {}
-  const zone = n <= 5 ? "ALTO" : n <= 10 ? "CENTRO" : n <= 13 ? "BASSA" : "PIANO"
-  const target = zone === "ALTO" ? 3 : zone === "CENTRO" ? 3.5 : zone === "BASSA" ? 4.5 : 5
+  const zone = n <= 5 ? "HIGH" : n <= 10 ? "CENTER" : n <= 13 ? "LOW" : "PLAIN"
+  const target = zone === "HIGH" ? 3 : zone === "CENTER" ? 3.5 : zone === "LOW" ? 4.5 : 5
   const lon = 13.5647 + Math.cos((index / 15) * Math.PI * 2) * 0.03
   const lat = 41.4925 + Math.sin((index / 15) * Math.PI * 2) * 0.02
   return {
     id,
-    name: `Distretto Ceccano ${String(n).padStart(2, "0")}`,
+    name: `Ceccano District ${String(n).padStart(2, "0")}`,
     zone,
-    altitude_min_m: zone === "ALTO" ? 420 : zone === "CENTRO" ? 350 : zone === "BASSA" ? 280 : 250,
-    altitude_max_m: zone === "ALTO" ? 520 : zone === "CENTRO" ? 450 : zone === "BASSA" ? 360 : 290,
+    altitude_min_m: zone === "HIGH" ? 420 : zone === "CENTER" ? 350 : zone === "LOW" ? 280 : 250,
+    altitude_max_m: zone === "HIGH" ? 520 : zone === "CENTER" ? 450 : zone === "LOW" ? 360 : 290,
     territory_km2: 1.2 + n * 0.18,
     users: 520 + n * 95,
     consumption_m3_day: 430 + n * 38,
@@ -293,7 +293,7 @@ const fallbackCeccanoValves: CeccanoValve[] = fallbackCeccanoDistricts.map((dist
     zone: district.zone,
     altitude_m: Math.round((district.altitude_min_m + district.altitude_max_m) / 2),
     type: n <= 10 ? "day" : "night",
-    name: `Valvola ${district.id}`,
+    name: `Valve ${district.id}`,
     loc_pos_x: district.geometry.coordinates[0][0][0],
     loc_pos_y: district.geometry.coordinates[0][0][1],
     posxx: 0.2 + n * 0.07,
@@ -310,7 +310,7 @@ const fallbackCeccanoValves: CeccanoValve[] = fallbackCeccanoDistricts.map((dist
 
 const fallbackCeccanoReservoirs: CeccanoReservoir[] = fallbackCeccanoDistricts.map((district, index) => ({
   id: `CER-${String(index + 1).padStart(2, "0")}`,
-  name: `Serbatoio Ceccano ${String(index + 1).padStart(2, "0")}`,
+  name: `Ceccano Reservoir ${String(index + 1).padStart(2, "0")}`,
   district_id: district.id,
   capacity_m3: 900 + (index + 1) * 140,
   level_pct: 84 - ((index + 1) * 3) % 31,
@@ -325,7 +325,7 @@ const fallbackCeccanoOverview: CeccanoOverview = {
   center: { lat: 41.4925, lon: 13.5647 },
   counts: { districts: 15, valves: 15, reservoirs: 15, conduits: 25, sensors: 40, users: 120 },
   status: { critical: 2, emergency: 2, normal: 11, avg_pressure_bar: 3.08, avg_loss_pct: 29.1, db_load_pct: 63, night_mode: true },
-  targets: { ALTO: 3, CENTRO: 3.5, BASSA: 4.5, PIANO: 5 },
+  targets: { HIGH: 3, CENTER: 3.5, LOW: 4.5, PLAIN: 5 },
   ai_summary: "4 districts exceed the 50% loss threshold. Prioritize CED-12 and CED-15, then rebalance CED-04 through partial valve closure.",
   updated_at: new Date().toISOString()
 }
@@ -613,7 +613,7 @@ export async function adjustCeccanoValve(valveId: string, targetOpenPct: number)
       target_open_pct: targetOpenPct,
       expected_pressure_bar: Number((3 + (targetOpenPct - valve.stat_today_pct) / 100).toFixed(2)),
       expected_flow_m3h: Number((valve.flow_today_m3h * targetOpenPct / Math.max(1, valve.stat_today_pct)).toFixed(1)),
-      rationale: `Regolazione ${valve.valve_id} verso ${targetOpenPct}% in modalita demo fallback.`,
+      rationale: `Adjusting ${valve.valve_id} toward ${targetOpenPct}% in fallback demo mode.`,
       audit: { operator_id: "operator", mode: valve.type, created_at: new Date().toISOString() }
     }
   })

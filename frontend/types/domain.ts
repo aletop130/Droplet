@@ -575,7 +575,7 @@ export type CeccanoOverview = {
 export type CeccanoDistrict = {
   id: string
   name: string
-  zone: "ALTO" | "CENTRO" | "BASSA" | "PIANO"
+  zone: "HIGH" | "CENTER" | "LOW" | "PLAIN"
   altitude_min_m: number
   altitude_max_m: number
   territory_km2: number

@@ -65,7 +65,6 @@ export default function SettingsPage() {
             <div className="text-data text-[var(--acea-cyan)]">Audit</div>
             <h2 className="text-h2 mt-2 text-[var(--text-hi)]">AI traces and operator action slots.</h2>
           </div>
-          <Button variant="ghost">Export CSV</Button>
         </div>
 
         <div className="flex gap-2">

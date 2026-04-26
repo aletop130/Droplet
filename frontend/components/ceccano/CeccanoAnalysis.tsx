@@ -35,12 +35,12 @@ const defaultLayers: Record<LayerKey, boolean> = {
 }
 
 const layerLabels: Array<{ key: LayerKey; label: string; icon: typeof Layers }> = [
-  { key: "districts", label: "Distretti", icon: Layers },
-  { key: "reservoirs", label: "Serbatoi", icon: Droplet },
-  { key: "conduits", label: "Condotte", icon: Waves },
-  { key: "valves", label: "Valvole", icon: SlidersHorizontal },
-  { key: "sensors", label: "Sensori", icon: Radio },
-  { key: "users", label: "Utenze", icon: CheckCircle2 }
+  { key: "districts", label: "Districts", icon: Layers },
+  { key: "reservoirs", label: "Reservoirs", icon: Droplet },
+  { key: "conduits", label: "Pipes", icon: Waves },
+  { key: "valves", label: "Valves", icon: SlidersHorizontal },
+  { key: "sensors", label: "Sensors", icon: Radio },
+  { key: "users", label: "Users", icon: CheckCircle2 }
 ]
 
 const statusStyle: Record<CeccanoDistrict["status"], string> = {
@@ -58,9 +58,9 @@ function pointForIndex(index: number, total: number, radiusX: number, radiusY: n
 }
 
 function zoneColor(zone: string) {
-  if (zone === "ALTO") return "rgba(75,214,255,0.72)"
-  if (zone === "CENTRO") return "rgba(68,215,192,0.72)"
-  if (zone === "BASSA") return "rgba(251,191,36,0.72)"
+  if (zone === "HIGH") return "rgba(75,214,255,0.72)"
+  if (zone === "CENTER") return "rgba(68,215,192,0.72)"
+  if (zone === "LOW") return "rgba(251,191,36,0.72)"
   return "rgba(216,244,255,0.7)"
 }
 
@@ -156,7 +156,7 @@ export function CeccanoAnalysis() {
         <GlassCard className="rounded-[1.6rem] p-6">
           <div className="flex items-center gap-3 text-sm text-[var(--text-md)]">
             <Radio className="h-4 w-4 animate-pulse text-[var(--acea-cyan)]" />
-            Caricamento rete idrica Ceccano
+            Loading Ceccano water network
           </div>
         </GlassCard>
       </div>
@@ -173,7 +173,7 @@ export function CeccanoAnalysis() {
           </div>
           <h1 className="mt-3 text-3xl font-semibold text-[var(--text-hi)]">Ceccano Water Network Analysis</h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-md)]">
-            15 distretti, 15 serbatoi, 15 valvole giorno/notte. Grafica centrale, controlli fuori dalla mappa.
+            15 districts, 15 reservoirs, 15 day/night valves. Central network graphic, controls outside the map.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:w-[520px]">
@@ -189,8 +189,8 @@ export function CeccanoAnalysis() {
           <GlassCard className="rounded-[1.6rem] p-4">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
-                <div className="text-sm font-semibold text-[var(--text-hi)]">Grafica rete Ceccano</div>
-                <div className="text-data text-[var(--text-lo)]">Distretti, valvole, serbatoi, sensori</div>
+                <div className="text-sm font-semibold text-[var(--text-hi)]">Ceccano network graphic</div>
+                <div className="text-data text-[var(--text-lo)]">Districts, valves, reservoirs, sensors</div>
               </div>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
                 {layerLabels.map((item) => {
@@ -381,7 +381,7 @@ export function CeccanoAnalysis() {
             </div>
             <label className="mt-4 block">
               <div className="mb-2 flex items-center justify-between text-data text-[var(--text-lo)]">
-                <span>Target apertura</span>
+                <span>Target opening</span>
                 <span className="text-[var(--text-hi)]">{targetOpenPct}%</span>
               </div>
               <input
@@ -399,7 +399,7 @@ export function CeccanoAnalysis() {
             </Button>
             {adjustment ? (
               <div className="mt-3 rounded-lg border border-[rgba(68,215,192,0.26)] bg-[rgba(68,215,192,0.1)] p-3 text-sm leading-6 text-[var(--text-md)]">
-                Dopo l'aggiustamento: pressione stimata {adjustment.expected_pressure_bar} bar, flusso {adjustment.expected_flow_m3h} m3/h.
+                After adjustment: estimated pressure {adjustment.expected_pressure_bar} bar, flow {adjustment.expected_flow_m3h} m3/h.
               </div>
             ) : null}
           </GlassCard>
@@ -433,8 +433,8 @@ export function CeccanoAnalysis() {
         <GlassCard className="rounded-[1.6rem] p-4">
           <div className="mb-3 flex items-center justify-between">
             <div>
-              <div className="text-sm font-semibold text-[var(--text-hi)]">Distretti critici</div>
-              <div className="text-data text-[var(--text-lo)]">{criticalDistricts.length} su 15</div>
+              <div className="text-sm font-semibold text-[var(--text-hi)]">Critical districts</div>
+              <div className="text-data text-[var(--text-lo)]">{criticalDistricts.length} of 15</div>
             </div>
             <AlertTriangle className="h-5 w-5 text-[var(--phi-yellow)]" />
           </div>
@@ -507,7 +507,7 @@ function UserClusters() {
           <span
             key={index}
             className="absolute grid h-7 w-7 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border border-[rgba(216,244,255,0.18)] bg-[rgba(216,244,255,0.08)] text-[10px] text-[var(--acea-ice)]"
-            style={{ left: `${point.x}%`, top: `${point.y}%`, boxShadow: `0 0 20px ${zoneColor(index < 4 ? "ALTO" : index < 8 ? "CENTRO" : "BASSA")}` }}
+            style={{ left: `${point.x}%`, top: `${point.y}%`, boxShadow: `0 0 20px ${zoneColor(index < 4 ? "HIGH" : index < 8 ? "CENTER" : "LOW")}` }}
           >
             {8 + index}
           </span>

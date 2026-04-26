@@ -10,10 +10,10 @@ CENTER_LON = 13.5647
 CENTER_LAT = 41.4925
 
 ZONE_TARGETS = {
-    "ALTO": 3.0,
-    "CENTRO": 3.5,
-    "BASSA": 4.5,
-    "PIANO": 5.0,
+    "HIGH": 3.0,
+    "CENTER": 3.5,
+    "LOW": 4.5,
+    "PLAIN": 5.0,
 }
 
 CRITICAL_PROFILES = {
@@ -22,28 +22,28 @@ CRITICAL_PROFILES = {
         "pressure_bar": 1.8,
         "loss_day_pct": 45,
         "status": "critical",
-        "issue": "Perdite elevate e corrosione su 1500 m di rete",
+        "issue": "High leakage and corrosion across 1500 m of network",
     },
     "CED-07": {
         "loss_pct": 52,
         "pressure_bar": 2.1,
         "loss_day_pct": 38,
         "status": "emergency",
-        "issue": "Condotte rotte per circa 200 m",
+        "issue": "Broken pipes across roughly 200 m",
     },
     "CED-12": {
         "loss_pct": 74,
         "pressure_bar": 1.2,
         "loss_day_pct": 52,
         "status": "critical",
-        "issue": "Rottura pipe con pressione fuori soglia",
+        "issue": "Pipe break with pressure outside threshold",
     },
     "CED-15": {
         "loss_pct": 89,
         "pressure_bar": 0.8,
         "loss_day_pct": 28,
         "status": "emergency",
-        "issue": "Zona est con perdite diffuse e stabilita geologica debole",
+        "issue": "East zone with widespread leaks and weak geological stability",
     },
 }
 
@@ -52,20 +52,20 @@ MATERIALS = ["ductile_iron", "steel", "polyethylene", "copper"]
 
 def _district_zone(index: int) -> str:
     if index <= 5:
-        return "ALTO"
+        return "HIGH"
     if index <= 10:
-        return "CENTRO"
+        return "CENTER"
     if index <= 13:
-        return "BASSA"
-    return "PIANO"
+        return "LOW"
+    return "PLAIN"
 
 
 def _zone_altitude(zone: str, index: int) -> tuple[int, int]:
     base = {
-        "ALTO": (420, 520),
-        "CENTRO": (350, 450),
-        "BASSA": (280, 360),
-        "PIANO": (250, 290),
+        "HIGH": (420, 520),
+        "CENTER": (350, 450),
+        "LOW": (280, 360),
+        "PLAIN": (250, 290),
     }[zone]
     offset = (index % 5) * 4
     return base[0] + offset, base[1] + offset
@@ -92,21 +92,21 @@ def _district_polygon(index: int) -> list[list[float]]:
 def build_districts() -> list[dict[str, Any]]:
     districts: list[dict[str, Any]] = []
     names = [
-        "Alta Colle Leo",
-        "Alta Badia",
-        "Alta Madonna",
-        "Centro Castello",
-        "Centro Borgo",
-        "Centro Valle",
-        "Nord Stazione",
-        "Centro Sacco",
-        "Centro Maiura",
-        "Bassa Le Sterpare",
-        "Bassa Anime Sante",
-        "Sud Scalo",
-        "Bassa Cardegna",
-        "Piano Fiume",
-        "Est Morena",
+        "High Colle Leo",
+        "High Badia",
+        "High Madonna",
+        "Center Castle",
+        "Center Borgo",
+        "Center Valley",
+        "North Station",
+        "Center Sacco",
+        "Center Maiura",
+        "Low Le Sterpare",
+        "Low Anime Sante",
+        "South Rail Yard",
+        "Low Cardegna",
+        "River Plain",
+        "East Morena",
     ]
     for index in range(1, 16):
         district_id = f"CED-{index:02d}"
@@ -157,7 +157,7 @@ def build_reservoirs() -> list[dict[str, Any]]:
         reservoirs.append(
             {
                 "id": f"CER-{index:02d}",
-                "name": f"Serbatoio Ceccano {index:02d}",
+                "name": f"Ceccano Reservoir {index:02d}",
                 "district_id": f"CED-{index:02d}",
                 "capacity_m3": 900 + index * 140,
                 "level_pct": max(32, 84 - (index * 3) % 31),
@@ -186,7 +186,7 @@ def build_valves() -> list[dict[str, Any]]:
                 "zone": district["zone"],
                 "altitude_m": round((district["altitude_min_m"] + district["altitude_max_m"]) / 2),
                 "type": mode,
-                "name": f"Valvola {district['id']}",
+                "name": f"Valve {district['id']}",
                 "loc_pos_x": round(lon, 6),
                 "loc_pos_y": round(lat, 6),
                 "posxx": round(0.2 + index * 0.07, 2),
@@ -212,7 +212,7 @@ def _recommended_opening(district: dict[str, Any]) -> int:
         return 45
     if district["id"] == "CED-15":
         return 70
-    return 80 if district["zone"] != "PIANO" else 68
+    return 80 if district["zone"] != "PLAIN" else 68
 
 
 VALVES = build_valves()
@@ -458,8 +458,8 @@ def adjust_valve(payload: dict[str, Any]) -> dict[str, Any] | None:
             "created_at": datetime.now(timezone.utc).isoformat(),
         },
         "rationale": (
-            f"Regolazione {valve['valve_id']} verso {target_open_pct}% per riportare "
-            f"{valve['district_id']} vicino al target di zona {valve['zone']}."
+            f"Adjust {valve['valve_id']} toward {target_open_pct}% to bring "
+            f"{valve['district_id']} close to the {valve['zone']} zone target."
         ),
     }
 

@@ -72,7 +72,7 @@ export default function TankDetailPage() {
           <div className="mt-4 flex flex-wrap gap-2">
             <DataBadge label="source" value={detail.tank.properties.data_source ?? "osm"} />
             <DataBadge label="capacity" value={`${Math.round(detail.tank.properties.capacity_m3 ?? 0)} m3`} tone="neutral" />
-            <DataBadge label="quota" value={`${Math.round(detail.tank.properties.elevation_m ?? 0)} m`} tone="neutral" />
+            <DataBadge label="elevation" value={`${Math.round(detail.tank.properties.elevation_m ?? 0)} m`} tone="neutral" />
             <DataBadge label="dma" value={detail.tank.properties.dma_name ?? "n/a"} tone="neutral" />
           </div>
         </div>
