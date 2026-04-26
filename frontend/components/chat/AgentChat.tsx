@@ -258,7 +258,6 @@ export function AgentChat({ mode = "page" }: AgentChatProps) {
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
               <DataBadge label="agent" value={agentMode === "investments" ? "investment" : "operations"} tone={agentMode === "investments" ? "yellow" : "neutral"} />
-              <DataBadge label="context" value={storedPageContext.route ?? "/app"} tone="neutral" />
             </div>
           </div>
 
@@ -533,7 +532,7 @@ export function AgentChat({ mode = "page" }: AgentChatProps) {
         </form>
         <div className="mt-2 flex items-center justify-between text-data text-[var(--text-lo)]">
           <span>Enter sends · Shift+Enter adds a line</span>
-          <span>{agentMode === "investments" ? "investment agent" : storedPageContext.route}</span>
+          <span>{agentMode === "investments" ? "investment agent" : "operations agent"}</span>
         </div>
       </div>
     </div>
