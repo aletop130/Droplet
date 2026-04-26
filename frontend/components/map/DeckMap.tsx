@@ -386,14 +386,14 @@ export function DeckMap() {
         <Map ref={mapRef} mapStyle="https://tiles.openfreemap.org/styles/liberty" />
       </DeckGL>
 
-      <div className="pointer-events-none fixed inset-x-0 top-20 z-20 flex justify-center px-4">
-        <GlassCard className="pointer-events-auto w-full max-w-5xl rounded-[1.8rem] px-4 py-3">
+      <div className="pointer-events-none fixed inset-x-0 top-20 z-20 flex justify-center px-2 sm:px-4">
+        <GlassCard className="pointer-events-auto w-full max-w-5xl rounded-[1.25rem] px-3 py-2.5 sm:rounded-[1.8rem] sm:px-4 sm:py-3">
           <div className="flex flex-wrap items-center gap-3">
             <div className="min-w-[160px] flex-1">
               <div className="text-data text-[var(--acea-cyan)]">Map filters</div>
-              <div className="mt-1 text-sm text-[var(--text-md)]">Sharper controls with labels people can actually read.</div>
+              <div className="mt-1 hidden text-sm text-[var(--text-md)] sm:block">Sharper controls with labels people can actually read.</div>
             </div>
-            <div className="grid flex-[2] gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid flex-[2] grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
             <FilterSelect label="Service area" value={dmaFilter} onChange={setDmaFilter}>
               <option value="all">All service areas</option>
               {dmas.map((dma) => (
@@ -423,7 +423,7 @@ export function DeckMap() {
         </GlassCard>
       </div>
 
-       <div className="pointer-events-none fixed right-4 top-60 z-20 w-[240px]">
+       <div className="pointer-events-none fixed right-4 top-60 z-20 hidden w-[240px] md:block">
         <GlassCard className="pointer-events-auto rounded-[1.6rem] p-4">
           <div className="mb-3 flex items-center justify-between">
             <div className="text-sm font-medium text-[var(--text-hi)]">Layer toggles</div>
@@ -433,7 +433,7 @@ export function DeckMap() {
         </GlassCard>
       </div>
 
-      <div className="pointer-events-none fixed bottom-2 right-2 z-20 w-[178px]">
+      <div className="pointer-events-none fixed bottom-24 right-2 z-20 w-[178px] lg:bottom-2">
         <GlassCard className="pointer-events-auto rounded-[1.15rem] px-3 py-2.5">
           <div className="flex items-center justify-between">
             <div className="text-sm font-medium text-[var(--text-hi)]">Digital Twin</div>
@@ -452,15 +452,15 @@ export function DeckMap() {
             animate={{ x: 0 }}
             exit={{ x: drawerWidth + 40 }}
             transition={{ type: "spring", stiffness: 260, damping: 28 }}
-            style={{ width: drawerWidth }}
+            style={{ width: `min(100vw, ${drawerWidth}px)` }}
             className="fixed inset-y-0 right-0 z-30 min-w-0 border-l border-[var(--glass-stroke)] bg-[rgba(255,255,255,0.92)] pt-20 backdrop-blur-[24px]"
           >
             <button
               type="button"
               onMouseDown={() => setIsResizing(true)}
-              className="absolute left-0 top-1/2 h-20 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[rgba(75,214,255,0.26)]"
+              className="absolute left-0 top-1/2 hidden h-20 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[rgba(75,214,255,0.26)] md:block"
             />
-            <div className="app-scroll h-full overflow-y-auto px-5 pb-6">
+            <div className="app-scroll h-full overflow-y-auto px-4 pb-28 sm:px-5 lg:pb-6">
               <div className="mb-4 flex items-center justify-between">
                 <div className="text-h2 text-[var(--text-hi)]">
                   {activeSegmentDetail ? "Segment detail" : activeTankDetail ? "Tank detail" : "Service area detail"}

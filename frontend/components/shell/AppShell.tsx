@@ -3,7 +3,7 @@
 import { useEffect, useMemo } from "react"
 import { usePathname, useRouter } from "next/navigation"
 
-import { SideNav } from "@/components/shell/SideNav"
+import { MobileNav, SideNav } from "@/components/shell/SideNav"
 import { TopBar } from "@/components/shell/TopBar"
 import { useChatStore } from "@/store/chatStore"
 import { useSelectionStore } from "@/store/selectionStore"
@@ -53,11 +53,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen">
       <TopBar user={session.user} onLogout={() => { signOut(); router.replace("/login") }} />
       <SideNav />
+      <MobileNav />
       <main
         className={
           isMapRoute
-            ? "relative min-h-screen"
-            : "relative min-h-screen px-4 pb-8 pt-24 lg:pl-[17.5rem] lg:pr-6"
+            ? "relative min-h-screen pb-24 lg:pb-0"
+            : "relative min-h-screen px-3 pb-28 pt-24 sm:px-4 lg:pb-8 lg:pl-[17.5rem] lg:pr-6"
         }
       >
         {children}

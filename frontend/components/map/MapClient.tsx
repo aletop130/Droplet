@@ -53,7 +53,7 @@ export function MapClient() {
       {mode === "geo" ? (
         <DeckMap />
       ) : (
-        <div className="fixed inset-0 z-0 overflow-y-auto bg-[linear-gradient(180deg,rgba(248,251,255,0.98),rgba(255,255,255,0.98))] px-4 pb-8 pt-28 lg:pl-[17.5rem] lg:pr-6">
+        <div className="fixed inset-0 z-0 overflow-y-auto bg-[linear-gradient(180deg,rgba(248,251,255,0.98),rgba(255,255,255,0.98))] px-3 pb-28 pt-28 sm:px-4 lg:pb-8 lg:pl-[17.5rem] lg:pr-6">
           <NetworkGraph embedded />
         </div>
       )}
