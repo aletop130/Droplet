@@ -19,7 +19,7 @@ const team = [
     role: "Solution Architect and Team Leader",
     image: "/team/alessandro-aldini.jpeg",
     summary:
-      "High school student, former Humans intern, and Acea collaborator, building AI products that connect data, automation, and operational decision support.",
+      "High school student and former Humans intern, building AI products that connect data, automation, and operational decision support.",
     bullets: [
       "Winner, NASA Space Apps Challenge Rome 2023 and 2024 alongside Francesco Massa.",
       "Creator of ZeroHR, an AI assistant for labor consultants selected for DigithON 2025.",

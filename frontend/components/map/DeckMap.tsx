@@ -96,7 +96,6 @@ export function DeckMap() {
   const mapFocus = useSelectionStore((state) => state.mapFocus)
   const setMapFocus = useSelectionStore((state) => state.setMapFocus)
   const wsStatus = useAlertsStore((state) => state.wsStatus)
-  const lastEvent = useAlertsStore((state) => state.events[0] ?? null)
 
   useEffect(() => {
     void fetchCore()
@@ -434,27 +433,14 @@ export function DeckMap() {
         </GlassCard>
       </div>
 
-      <div className="pointer-events-none fixed bottom-4 right-4 z-20 w-[260px]">
-        <GlassCard className="pointer-events-auto rounded-[1.6rem] p-4">
+      <div className="pointer-events-none fixed bottom-2 right-2 z-20 w-[178px]">
+        <GlassCard className="pointer-events-auto rounded-[1.15rem] px-3 py-2.5">
           <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm font-medium text-[var(--text-hi)]">Digital Twin Live</div>
-              <div className="text-data text-[var(--text-lo)]">{new Date().toLocaleTimeString("it-IT")}</div>
-            </div>
-            <div className="flex items-center gap-2 text-sm">
-              <Radio className={`h-4 w-4 ${wsStatus === "open" ? "text-[var(--phi-green)]" : "text-[var(--phi-red)]"}`} />
+            <div className="text-sm font-medium text-[var(--text-hi)]">Digital Twin</div>
+            <div className="flex items-center gap-1.5 text-sm">
+              <Radio className={`h-3.5 w-3.5 ${wsStatus === "open" ? "text-[var(--phi-green)]" : "text-[var(--phi-red)]"}`} />
               <span className="text-data text-[var(--text-lo)]">{wsStatus}</span>
             </div>
-          </div>
-          <div className="mt-3 rounded-2xl border border-[rgba(173,218,255,0.1)] bg-[rgba(255,255,255,0.03)] p-3 text-sm text-[var(--text-md)]">
-            {lastEvent ? (
-              <>
-                <div className="text-[var(--text-hi)]">{lastEvent.title ?? lastEvent.type}</div>
-                <div className="mt-1 text-data text-[var(--text-lo)]">{lastEvent.ts ?? "live"}</div>
-              </>
-            ) : (
-              "Waiting for the next event."
-            )}
           </div>
         </GlassCard>
       </div>

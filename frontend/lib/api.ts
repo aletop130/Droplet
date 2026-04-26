@@ -583,14 +583,68 @@ export async function getCeccanoAnalysis(): Promise<CeccanoAnalysis> {
     fetchJson<CeccanoForecast>("/api/ceccano/forecast")
   ])
     .then(([overview, districts, valves, reservoirs, pressure, forecast]) => ({
-      overview,
-      districts: districts.items,
-      valves: valves.items,
-      reservoirs: reservoirs.items,
+      overview: normalizeCeccanoOverview(overview),
+      districts: districts.items.map(normalizeCeccanoDistrict),
+      valves: valves.items.map(normalizeCeccanoValve),
+      reservoirs: reservoirs.items.map(normalizeCeccanoReservoir),
       pressure: pressure.items,
       forecast
     }))
     .catch(() => buildCeccanoFallback())
+}
+
+function normalizeCeccanoZone(zone: string): CeccanoDistrict["zone"] {
+  if (zone === "ALTO") return "HIGH"
+  if (zone === "CENTRO") return "CENTER"
+  if (zone === "BASSA") return "LOW"
+  if (zone === "PIANO") return "PLAIN"
+  return zone as CeccanoDistrict["zone"]
+}
+
+function normalizeCeccanoText(value: string) {
+  return value
+    .replaceAll("Perdite elevate e corrosione su 1500 m di rete", "High leakage and corrosion across 1500 m of network")
+    .replaceAll("Condotte rotte per circa 200 m", "Broken pipes across roughly 200 m")
+    .replaceAll("Rottura pipe con pressione fuori soglia", "Pipe break with pressure outside threshold")
+    .replaceAll("Zona est con perdite diffuse e stabilita geologica debole", "East zone with widespread leaks and weak geological stability")
+    .replaceAll("Serbatoio Ceccano", "Ceccano Reservoir")
+    .replaceAll("Valvola", "Valve")
+    .replaceAll("Distretto Ceccano", "Ceccano District")
+}
+
+function normalizeCeccanoOverview(overview: CeccanoOverview): CeccanoOverview {
+  return {
+    ...overview,
+    targets: Object.fromEntries(Object.entries(overview.targets).map(([zone, target]) => [normalizeCeccanoZone(zone), target])),
+    ai_summary: normalizeCeccanoText(overview.ai_summary)
+  }
+}
+
+function normalizeCeccanoDistrict(district: CeccanoDistrict): CeccanoDistrict {
+  return {
+    ...district,
+    name: normalizeCeccanoText(district.name),
+    zone: normalizeCeccanoZone(district.zone),
+    issue: normalizeCeccanoText(district.issue)
+  }
+}
+
+function normalizeCeccanoValve(valve: CeccanoValve): CeccanoValve {
+  const zone = normalizeCeccanoZone(valve.zone)
+  return {
+    ...valve,
+    zone,
+    name: normalizeCeccanoText(valve.name),
+    target_curve: `${zone.toLowerCase()}-day`,
+    target_night: `${zone.toLowerCase()}-night`
+  }
+}
+
+function normalizeCeccanoReservoir(reservoir: CeccanoReservoir): CeccanoReservoir {
+  return {
+    ...reservoir,
+    name: normalizeCeccanoText(reservoir.name)
+  }
 }
 
 export async function adjustCeccanoValve(valveId: string, targetOpenPct: number): Promise<CeccanoAdjustResult> {
